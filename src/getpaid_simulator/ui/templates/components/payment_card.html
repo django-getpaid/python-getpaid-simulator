@@ -1,0 +1,17 @@
+<div class="payment-card">
+    <div class="payment-card-header">
+        <div class="payment-amount">{{ amount }}</div>
+        {% include "components/status_badge.html" with context %}
+    </div>
+    <div class="payment-details">
+        <div class="detail-label">Order ID:</div>
+        <div class="detail-value">{{ order_id }}</div>
+        
+        <div class="detail-label">Provider:</div>
+        <div class="detail-value">{{ provider }}</div>
+    </div>
+    
+    <div class="action-bar">
+        {% block card_actions %}{% endblock %}
+    </div>
+</div>

@@ -1,0 +1,262 @@
+:root {
+  --bg-dark: #0d0d0d;
+  --bg-card: #1a1a1a;
+  --text-main: #e0e0e0;
+  --text-muted: #888888;
+  
+  --amber: #ff9900;
+  --amber-dim: rgba(255, 153, 0, 0.2);
+  
+  --neon-green: #00ff88;
+  --neon-green-dim: rgba(0, 255, 136, 0.2);
+  
+  --neon-red: #ff3344;
+  --neon-red-dim: rgba(255, 51, 68, 0.2);
+  
+  --border-radius: 4px;
+  --font-mono: 'Courier New', Courier, monospace, system-ui;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layout */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  width: 100%;
+  flex: 1;
+}
+
+/* Header & Footer */
+.simulator-header {
+  border-bottom: 2px solid var(--amber);
+  padding: 1rem;
+  text-align: center;
+  background-color: var(--bg-card);
+  box-shadow: 0 4px 12px var(--amber-dim);
+}
+
+.simulator-header h1 {
+  color: var(--amber);
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+}
+
+.simulator-provider {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.simulator-footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: var(--neon-red-dim);
+  border-top: 1px solid var(--neon-red);
+  color: var(--neon-red);
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Warning Badge */
+.sim-badge {
+  display: inline-block;
+  background-color: var(--amber);
+  color: var(--bg-dark);
+  padding: 0.25rem 0.5rem;
+  font-weight: bold;
+  border-radius: var(--border-radius);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+/* Typography elements */
+h2, h3 {
+  color: var(--text-main);
+  margin-bottom: 1rem;
+  font-weight: normal;
+  border-bottom: 1px dashed var(--text-muted);
+  padding-bottom: 0.5rem;
+}
+
+/* Card Component */
+.payment-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--text-muted);
+  border-left: 4px solid var(--amber);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.payment-card:hover {
+  box-shadow: 0 0 15px var(--amber-dim);
+  border-color: var(--amber);
+}
+
+.payment-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.payment-amount {
+  font-size: 1.5rem;
+  color: var(--text-main);
+  font-weight: bold;
+}
+
+.payment-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: var(--text-muted);
+}
+
+.detail-value {
+  color: var(--text-main);
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-badge.status-pending {
+  background-color: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  animation: pulse 2s infinite;
+}
+
+.status-badge.status-waiting_for_confirmation {
+  background-color: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid var(--amber);
+}
+
+.status-badge.status-completed {
+  background-color: var(--neon-green-dim);
+  color: var(--neon-green);
+  border: 1px solid var(--neon-green);
+  box-shadow: 0 0 8px var(--neon-green-dim);
+}
+
+.status-badge.status-canceled {
+  background-color: var(--neon-red-dim);
+  color: var(--neon-red);
+  border: 1px solid var(--neon-red);
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { opacity: 0.8; box-shadow: 0 0 0 0 rgba(255, 153, 0, 0.4); }
+  50% { opacity: 1; box-shadow: 0 0 0 4px rgba(255, 153, 0, 0); }
+  100% { opacity: 0.8; box-shadow: 0 0 0 0 rgba(255, 153, 0, 0); }
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--border-radius);
+  background-color: transparent;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.btn-approve {
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+}
+
+.btn-approve:hover {
+  background-color: var(--neon-green-dim);
+  box-shadow: 0 0 10px var(--neon-green-dim);
+}
+
+.btn-reject {
+  border-color: var(--neon-red);
+  color: var(--neon-red);
+}
+
+.btn-reject:hover {
+  background-color: var(--neon-red-dim);
+  box-shadow: 0 0 10px var(--neon-red-dim);
+}
+
+.btn-neutral {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.btn-neutral:hover {
+  background-color: var(--amber-dim);
+  box-shadow: 0 0 10px var(--amber-dim);
+}
+
+.action-bar {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .simulator-header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .action-bar {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+}

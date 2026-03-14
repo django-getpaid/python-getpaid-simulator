@@ -1,0 +1,77 @@
+*.py[cod]
+__pycache__
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+coverage.xml
+.tox
+nosetests.xml
+htmlcov
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+
+# Pycharm/Intellij
+.idea
+
+# Complexity
+output/*.html
+output/*/index.html
+
+# Sphinx
+docs/_build
+
+# Default Django Database
+db.sqlite3
+
+# pipenv
+/Pipfile
+/Pipfile.lock
+
+# pyenv
+.python-version
+
+# virtualenv
+venv
+.venv
+virtualenv
+.virtualenv
+
+# poetry
+/poetry.lock
+
+# Codacy
+/.codacy-coverage
+/codacy-coverage.json
+
+# Sublime text (editor)
+*.sublime-project
+*.sublime-workspace
+
+/.smithers

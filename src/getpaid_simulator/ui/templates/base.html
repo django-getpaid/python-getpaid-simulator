@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="color-scheme" content="dark">
+    <title>{% block title %}Simulator{% endblock %} | GetPaid Simulator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="simulator-header">
+        <h1>⚡ GETPAID SIMULATOR</h1>
+        <div class="simulator-provider">
+            {% if provider %}
+                Simulating Provider: <strong>{{ provider }}</strong>
+            {% else %}
+                Test Environment
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="simulator-footer">
+        SIMULATOR MODE — NOT A REAL PAYMENT GATEWAY
+    </footer>
+</body>
+</html>

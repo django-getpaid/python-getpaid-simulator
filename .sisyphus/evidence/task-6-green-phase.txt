@@ -1,0 +1,25 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.12, pytest-9.0.2, pluggy-1.6.0 -- /home/minder/projekty/python-getpaid/getpaid-simulator/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/minder/projekty/python-getpaid/getpaid-simulator
+configfile: pyproject.toml
+plugins: Faker-40.11.0, asyncio-1.3.0, cov-7.0.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 14 items
+
+tests/test_payu_oauth.py::TestOAuthEndpoint::test_oauth_endpoint_success PASSED [  7%]
+tests/test_payu_oauth.py::TestOAuthEndpoint::test_oauth_token_format_validation PASSED [ 14%]
+tests/test_payu_oauth.py::TestOAuthEndpoint::test_oauth_accepts_any_credentials PASSED [ 21%]
+tests/test_payu_oauth.py::TestOAuthEndpoint::test_oauth_token_stored_in_storage PASSED [ 28%]
+tests/test_payu_oauth.py::TestOAuthEndpoint::test_oauth_token_expiry_stored PASSED [ 35%]
+tests/test_payu_oauth.py::TestBearerTokenMiddleware::test_middleware_success_with_valid_token PASSED [ 42%]
+tests/test_payu_oauth.py::TestBearerTokenMiddleware::test_middleware_401_missing_token PASSED [ 50%]
+tests/test_payu_oauth.py::TestBearerTokenMiddleware::test_middleware_401_invalid_token PASSED [ 57%]
+tests/test_payu_oauth.py::TestBearerTokenMiddleware::test_middleware_401_expired_token PASSED [ 64%]
+tests/test_payu_oauth.py::TestBearerTokenMiddleware::test_middleware_401_malformed_header PASSED [ 71%]
+tests/test_payu_oauth.py::TestSignatureModule::test_compute_signature_known_input PASSED [ 78%]
+tests/test_payu_oauth.py::TestSignatureModule::test_compute_signature_empty_body PASSED [ 85%]
+tests/test_payu_oauth.py::TestSignatureModule::test_sign_payload_format PASSED [ 92%]
+tests/test_payu_oauth.py::TestSignatureModule::test_sign_payload_integration_with_processor PASSED [100%]
+
+============================== 14 passed in 0.06s ==============================
