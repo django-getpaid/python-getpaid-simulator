@@ -10,6 +10,7 @@ from litestar.datastructures import State
 from getpaid_simulator.core.state import PaymentStateMachine
 from getpaid_simulator.core.storage import SimulatorStorage
 from getpaid_simulator.providers.payu.webhooks import trigger_payu_webhook
+from getpaid_simulator.providers.paynow.webhooks import trigger_paynow_webhook
 
 
 @get(["/sim/", "/sim/dashboard"])
@@ -192,10 +193,7 @@ async def paynow_authorize_post(
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
 
-    # TODO: Add webhook callback later
-    webhook_callback = getattr(request.app.state, "webhook_callback", None)
-    if webhook_callback and callable(webhook_callback):
-        webhook_callback(payment_id)
+    await trigger_paynow_webhook(payment_id, storage, request.app.state.config)
 
     continue_url = payment.get("continueUrl", "/sim/dashboard")
     return Redirect(path=continue_url)
