@@ -117,11 +117,14 @@ async def create_order(
 
     order_data = dict(payload)
     order_data["status"] = "NEW"
-    order_id = request.app.state.storage.create_order(order_data)
+    order_id = request.app.state.storage.create_order(
+        order_data,
+        provider="payu",
+    )
     request.app.state.state_machine.transition(order_id, "PENDING")
 
     host = request.headers.get("host", "localhost")
-    redirect_uri = f"http://{host}/sim/authorize/{order_id}"
+    redirect_uri = f"http://{host}/sim/payu/authorize/{order_id}"
     response_body = {
         "status": {"statusCode": "SUCCESS"},
         "orderId": order_id,

@@ -46,7 +46,9 @@ async def test_create_order_returns_302_with_redirect_and_stores_order(
     assert response.status_code == 302
     body = response.json()
     order_id = body["orderId"]
-    expected_redirect_uri = f"http://simulator.local/sim/authorize/{order_id}"
+    expected_redirect_uri = (
+        f"http://simulator.local/sim/payu/authorize/{order_id}"
+    )
 
     assert body["status"]["statusCode"] == "SUCCESS"
     assert body["extOrderId"] == "ORDER-42"
@@ -56,6 +58,7 @@ async def test_create_order_returns_302_with_redirect_and_stores_order(
     stored_order = test_client.app.state.storage.get_order(order_id)
     assert stored_order is not None
     assert stored_order["status"] == "PENDING"
+    assert stored_order["provider"] == "payu"
     assert stored_order["notifyUrl"] == "https://merchant.example/callback"
     assert stored_order["continueUrl"] == "https://merchant.example/continue"
 

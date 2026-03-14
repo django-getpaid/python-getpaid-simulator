@@ -5,6 +5,31 @@ from typing import Any
 from getpaid_simulator.core.storage import SimulatorStorage
 
 
+PAYU_TRANSITIONS: dict[str, set[str]] = {
+    "NEW": {"PENDING"},
+    "PENDING": {"WAITING_FOR_CONFIRMATION", "CANCELED"},
+    "WAITING_FOR_CONFIRMATION": {"COMPLETED", "CANCELED"},
+    "COMPLETED": set(),
+    "CANCELED": set(),
+}
+
+PAYNOW_TRANSITIONS: dict[str, set[str]] = {
+    "NEW": {"PENDING", "ABANDONED"},
+    "PENDING": {
+        "CONFIRMED",
+        "REJECTED",
+        "ERROR",
+        "EXPIRED",
+        "ABANDONED",
+    },
+    "CONFIRMED": set(),
+    "REJECTED": set(),
+    "ERROR": set(),
+    "EXPIRED": set(),
+    "ABANDONED": set(),
+}
+
+
 class InvalidTransitionError(Exception):
     def __init__(self, current: str, requested: str):
         self.current = current
@@ -21,16 +46,13 @@ class InvalidTransitionError(Exception):
 
 
 class PaymentStateMachine:
-    _allowed_transitions: dict[str, set[str]] = {
-        "NEW": {"PENDING"},
-        "PENDING": {"WAITING_FOR_CONFIRMATION", "CANCELED"},
-        "WAITING_FOR_CONFIRMATION": {"COMPLETED", "CANCELED"},
-        "COMPLETED": set(),
-        "CANCELED": set(),
-    }
-
-    def __init__(self, storage: SimulatorStorage):
+    def __init__(
+        self,
+        storage: SimulatorStorage,
+        transitions: dict[str, set[str]] | None = None,
+    ):
         self.storage = storage
+        self._allowed_transitions = transitions or PAYU_TRANSITIONS
 
     def transition(self, order_id: str, new_status: str) -> dict[str, Any]:
         order = self.storage.get_order(order_id)

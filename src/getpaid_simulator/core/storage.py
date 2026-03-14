@@ -36,9 +36,57 @@ class SimulatorStorage:
             list
         )
 
-    def create_order(self, data: dict[str, Any]) -> str:
+    def create_order(
+        self,
+        data: dict[str, Any] | None = None,
+        *,
+        provider: str | None = None,
+        total_amount: int | str | Decimal | None = None,
+        currency: str | None = None,
+        description: str | None = None,
+        notify_url: str = "",
+        continue_url: str | None = None,
+        buyer_email: str | None = None,
+    ) -> str:
         order_id = uuid4().hex
-        order_data = _centify_dict(deepcopy(data))
+        if data is None:
+            if provider is None:
+                raise TypeError(
+                    "provider is required when data is not provided"
+                )
+            if total_amount is None:
+                raise TypeError(
+                    "total_amount is required when data is not provided"
+                )
+            if currency is None:
+                raise TypeError(
+                    "currency is required when data is not provided"
+                )
+            if description is None:
+                raise TypeError(
+                    "description is required when data is not provided"
+                )
+
+            order_payload: dict[str, Any] = {
+                "provider": provider,
+                "status": "NEW",
+                "totalAmount": total_amount,
+                "currencyCode": currency,
+                "description": description,
+                "continueUrl": continue_url,
+                "buyer": {},
+            }
+            if notify_url:
+                order_payload["notifyUrl"] = notify_url
+            if buyer_email:
+                order_payload["buyer"] = {"email": buyer_email}
+        else:
+            order_payload = deepcopy(data)
+            order_payload["provider"] = provider or str(
+                order_payload.get("provider", "payu")
+            )
+
+        order_data = _centify_dict(order_payload)
         order_data["id"] = order_id
         self._orders[order_id] = order_data
         return order_id
@@ -56,6 +104,13 @@ class SimulatorStorage:
 
     def list_orders(self) -> list[dict[str, Any]]:
         return [deepcopy(order) for order in self._orders.values()]
+
+    def list_orders_by_provider(self, provider: str) -> list[dict[str, Any]]:
+        return [
+            deepcopy(order)
+            for order in self._orders.values()
+            if order.get("provider") == provider
+        ]
 
     def create_token(
         self, pos_id: str, expires_in: int = 3600

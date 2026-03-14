@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
+import hmac
 import json
 from datetime import UTC
 from datetime import datetime
 from hashlib import sha256
+from typing import Callable
 from typing import TYPE_CHECKING
 from typing import Any
 
@@ -15,6 +19,22 @@ import httpx
 
 if TYPE_CHECKING:
     from getpaid_simulator.core.storage import SimulatorStorage
+
+
+def payu_sign_payload(body: bytes, key: str) -> dict[str, str]:
+    signature = sha256(body + key.encode()).hexdigest()
+    return {
+        "OpenPayU-Signature": (
+            f"signature={signature};algorithm=SHA-256;sender=checkout"
+        )
+    }
+
+
+def paynow_sign_payload(body: bytes, key: str) -> dict[str, str]:
+    signature = base64.b64encode(
+        hmac.new(key.encode(), body, hashlib.sha256).digest()
+    ).decode()
+    return {"Signature": signature}
 
 
 class WebhookDelivery:
@@ -26,6 +46,9 @@ class WebhookDelivery:
         second_key: str = "b6ca15b0d1020e8094d9b5f8d163db54",
         timeout: float = 5.0,
         retry_delay: float = 5.0,
+        sign_payload: Callable[
+            [bytes, str], dict[str, str]
+        ] = payu_sign_payload,
     ):
         """Initialize webhook delivery system.
 
@@ -39,6 +62,7 @@ class WebhookDelivery:
         self.second_key = second_key
         self.timeout = timeout
         self.retry_delay = retry_delay
+        self.sign_payload = sign_payload
 
     def _compute_signature(self, body: bytes, second_key: str) -> str:
         """Compute PayU signature: SHA256(body + second_key).
@@ -62,8 +86,7 @@ class WebhookDelivery:
             Signature header in PayU format:
             signature=<hex>;algorithm=SHA-256;sender=checkout
         """
-        sig = self._compute_signature(body, self.second_key)
-        return f"signature={sig};algorithm=SHA-256;sender=checkout"
+        return payu_sign_payload(body, self.second_key)["OpenPayU-Signature"]
 
     def _build_order_notification(self, order_id: str) -> dict[str, Any]:
         """Build OrderNotification payload for webhook callback.
@@ -127,13 +150,13 @@ class WebhookDelivery:
         body = json.dumps(payload).encode("utf-8")
 
         # Sign payload
-        signature_header = self._sign_payload(body)
+        signature_headers = self.sign_payload(body, self.second_key)
 
         # Prepare request
         headers = {
             "Content-Type": "application/json",
-            "OpenPayU-Signature": signature_header,
         }
+        headers.update(signature_headers)
 
         # Attempt delivery with retry logic
         async with httpx.AsyncClient(timeout=self.timeout) as client:

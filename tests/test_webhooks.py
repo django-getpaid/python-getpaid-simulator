@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import base64
+import hmac
+import hashlib
 from hashlib import sha256
 from typing import Any
 from unittest.mock import AsyncMock
@@ -10,6 +13,8 @@ import httpx
 import pytest
 import respx
 from getpaid_simulator.core.storage import SimulatorStorage
+from getpaid_simulator.core.webhooks import paynow_sign_payload
+from getpaid_simulator.core.webhooks import payu_sign_payload
 from getpaid_simulator.core.webhooks import WebhookDelivery
 
 
@@ -115,6 +120,74 @@ class TestWebhookSignature:
         expected = sha256(body + second_key.encode()).hexdigest()
 
         assert signature == expected
+
+
+def test_payu_sign_payload_returns_openpayu_signature_header():
+    body = b'{"order":{"status":"COMPLETED"}}'
+    second_key = "b6ca15b0d1020e8094d9b5f8d163db54"
+
+    headers = payu_sign_payload(body, second_key)
+
+    assert "OpenPayU-Signature" in headers
+    signature_header = headers["OpenPayU-Signature"]
+    assert signature_header.startswith("signature=")
+    assert ";algorithm=SHA-256;" in signature_header
+    assert signature_header.endswith(";sender=checkout")
+
+
+def test_paynow_sign_payload():
+    body = b'{"paymentId":"123","status":"CONFIRMED"}'
+    key = "test-key"
+
+    headers = paynow_sign_payload(body, key)
+
+    assert set(headers.keys()) == {"Signature"}
+    expected_signature = base64.b64encode(
+        hmac.new(key.encode(), body, hashlib.sha256).digest()
+    ).decode()
+    assert headers["Signature"] == expected_signature
+
+
+@pytest.mark.asyncio
+async def test_webhook_delivery_with_custom_signer(storage: SimulatorStorage):
+    captured = {"called": False, "body": b"", "key": ""}
+
+    def custom_signer(body: bytes, key: str) -> dict[str, str]:
+        captured["called"] = True
+        captured["body"] = body
+        captured["key"] = key
+        return {"Signature": "custom-signature"}
+
+    order_id = storage.create_order(
+        {
+            "provider": "paynow",
+            "notifyUrl": "http://test.local/callback",
+            "status": "PENDING",
+            "description": "Custom signer order",
+            "currencyCode": "PLN",
+            "totalAmount": "10000",
+            "buyer": {"email": "test@example.com"},
+        }
+    )
+
+    delivery = WebhookDelivery(
+        storage=storage,
+        second_key="custom-key",
+        sign_payload=custom_signer,
+    )
+
+    async with respx.mock:
+        route = respx.post("http://test.local/callback").mock(
+            return_value=httpx.Response(200)
+        )
+
+        result = await delivery.deliver_order_update(order_id)
+
+    assert result is True
+    assert captured["called"] is True
+    assert captured["key"] == "custom-key"
+    assert captured["body"] == route.calls.last.request.content
+    assert route.calls.last.request.headers["signature"] == "custom-signature"
 
 
 class TestWebhookPayloadFormat:

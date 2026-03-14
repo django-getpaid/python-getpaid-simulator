@@ -1,6 +1,7 @@
 import pytest
 
 from getpaid_simulator.core.state import InvalidTransitionError
+from getpaid_simulator.core.state import PAYNOW_TRANSITIONS
 from getpaid_simulator.core.state import PaymentStateMachine
 from getpaid_simulator.core.storage import SimulatorStorage
 
@@ -83,3 +84,41 @@ def test_invalid_transitions_raise_payu_error_response(
             ),
         }
     }
+
+
+def test_paynow_transitions(storage: SimulatorStorage):
+    state_machine = PaymentStateMachine(storage, transitions=PAYNOW_TRANSITIONS)
+    order_id = storage.create_order(
+        provider="paynow",
+        total_amount=999,
+        currency="PLN",
+        description="PayNow order",
+        continue_url="https://merchant.example/continue",
+        buyer_email="paynow@example.com",
+    )
+
+    pending_order = state_machine.transition(order_id, "PENDING")
+    confirmed_order = state_machine.transition(order_id, "CONFIRMED")
+
+    assert pending_order["status"] == "PENDING"
+    assert confirmed_order["status"] == "CONFIRMED"
+
+
+def test_paynow_rejects_waiting_for_confirmation(storage: SimulatorStorage):
+    state_machine = PaymentStateMachine(storage, transitions=PAYNOW_TRANSITIONS)
+    order_id = storage.create_order(
+        provider="paynow",
+        total_amount=999,
+        currency="PLN",
+        description="PayNow order",
+        continue_url="https://merchant.example/continue",
+        buyer_email="paynow@example.com",
+    )
+
+    state_machine.transition(order_id, "PENDING")
+
+    with pytest.raises(InvalidTransitionError) as error_info:
+        state_machine.transition(order_id, "WAITING_FOR_CONFIRMATION")
+
+    assert error_info.value.current == "PENDING"
+    assert error_info.value.requested == "WAITING_FOR_CONFIRMATION"

@@ -75,3 +75,72 @@ def test_refund_create_and_get_refunds_for_order():
 def test_get_refunds_returns_empty_for_unknown_order():
     storage = SimulatorStorage()
     assert storage.get_refunds("missing") == []
+
+
+def test_storage_provider_field():
+    storage = SimulatorStorage()
+
+    payu_order_id = storage.create_order(
+        provider="payu",
+        total_amount=1000,
+        currency="PLN",
+        description="PayU order",
+        notify_url="https://merchant.example/payu/notify",
+        continue_url="https://merchant.example/continue",
+        buyer_email="payu@example.com",
+    )
+    paynow_order_id = storage.create_order(
+        provider="paynow",
+        total_amount=2000,
+        currency="PLN",
+        description="PayNow order",
+        continue_url="https://merchant.example/continue",
+        buyer_email="paynow@example.com",
+    )
+
+    payu_order = storage.get_order(payu_order_id)
+    paynow_order = storage.get_order(paynow_order_id)
+
+    assert payu_order is not None
+    assert paynow_order is not None
+    assert payu_order["provider"] == "payu"
+    assert paynow_order["provider"] == "paynow"
+
+
+def test_storage_list_by_provider():
+    storage = SimulatorStorage()
+
+    storage.create_order(
+        provider="payu",
+        total_amount=1000,
+        currency="PLN",
+        description="PayU one",
+        notify_url="https://merchant.example/payu/notify",
+        continue_url="https://merchant.example/continue",
+        buyer_email="payu1@example.com",
+    )
+    storage.create_order(
+        provider="payu",
+        total_amount=1100,
+        currency="PLN",
+        description="PayU two",
+        notify_url="https://merchant.example/payu/notify",
+        continue_url="https://merchant.example/continue",
+        buyer_email="payu2@example.com",
+    )
+    storage.create_order(
+        provider="paynow",
+        total_amount=2000,
+        currency="PLN",
+        description="PayNow",
+        continue_url="https://merchant.example/continue",
+        buyer_email="paynow@example.com",
+    )
+
+    payu_orders = storage.list_orders_by_provider("payu")
+    paynow_orders = storage.list_orders_by_provider("paynow")
+
+    assert len(payu_orders) == 2
+    assert all(order["provider"] == "payu" for order in payu_orders)
+    assert len(paynow_orders) == 1
+    assert paynow_orders[0]["provider"] == "paynow"
