@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="authorization-container">
+    <div class="header">
+        <h1>Authorize Payment</h1>
+        <div class="provider-badge">{{ provider }}</div>
+    </div>
+    
+    {% include "components/payment_card.html" %}
+
+    <form method="POST" action="" class="action-buttons">
+        <button type="submit" name="action" value="approve" class="btn btn-approve">
+            <span class="btn-text">Approve Payment</span>
+            <div class="btn-glow"></div>
+        </button>
+        
+        <button type="submit" name="action" value="reject" class="btn btn-reject">
+            <span class="btn-text">Reject Payment</span>
+            <div class="btn-glow"></div>
+        </button>
+    </form>
+</div>
+{% endblock %}

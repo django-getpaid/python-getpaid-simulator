@@ -1,0 +1,5 @@
+{% extends "components/payment_card.html" %}
+
+{% block card_actions %}
+<a href="/sim/{{ provider|lower }}/authorize/{{ order_id }}" class="btn btn-neutral">Authorize</a>
+{% endblock %}
