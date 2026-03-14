@@ -43,6 +43,9 @@ e2e = [
     'python-getpaid-paynow',
 ]
 
+[project.scripts]
+getpaid-simulator = "getpaid_simulator.__main__:main"
+
 [project.urls]
 Homepage = 'https://github.com/django-getpaid/python-getpaid-simulator'
 Repository = 'https://github.com/django-getpaid/python-getpaid-simulator'
