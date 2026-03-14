@@ -709,6 +709,34 @@ dev = [
 ]
 
 [[package]]
+name = "python-getpaid-paynow"
+source = { editable = "../getpaid-paynow" }
+dependencies = [
+    { name = "httpx" },
+    { name = "python-getpaid-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "python-getpaid-core", specifier = ">=3.0.0a2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "furo", specifier = ">=2024.8.6" },
+    { name = "myst-parser", specifier = ">=4.0" },
+    { name = "pre-commit", specifier = ">=4.0" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-cov", specifier = ">=5.0" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = ">=0.9.0" },
+    { name = "sphinx", specifier = ">=8.0" },
+    { name = "ty", specifier = ">=0.0.16" },
+]
+
+[[package]]
 name = "python-getpaid-payu"
 source = { editable = "../getpaid-payu" }
 dependencies = [
@@ -766,6 +794,7 @@ e2e = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "python-getpaid-core" },
+    { name = "python-getpaid-paynow" },
     { name = "python-getpaid-payu" },
     { name = "respx" },
     { name = "ruff" },
@@ -798,6 +827,7 @@ e2e = [
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "python-getpaid-core", editable = "../getpaid-core" },
+    { name = "python-getpaid-paynow", editable = "../getpaid-paynow" },
     { name = "python-getpaid-payu", editable = "../getpaid-payu" },
     { name = "respx", specifier = ">=0.21.0" },
     { name = "ruff", specifier = ">=0.9.0" },

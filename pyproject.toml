@@ -40,6 +40,7 @@ e2e = [
     {include-group = "dev"},
     'python-getpaid-core',
     'python-getpaid-payu',
+    'python-getpaid-paynow',
 ]
 
 [project.urls]
@@ -59,6 +60,7 @@ path = "src/getpaid_simulator/__init__.py"
 [tool.uv.sources]
 python-getpaid-core = { path = "../getpaid-core", editable = true }
 python-getpaid-payu = { path = "../getpaid-payu", editable = true }
+python-getpaid-paynow = { path = "../getpaid-paynow", editable = true }
 
 [tool.pytest.ini_options]
 testpaths = ['tests']

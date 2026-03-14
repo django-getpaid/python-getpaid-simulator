@@ -1,5 +1,6 @@
 """Litestar application for payment gateway simulator."""
 
+from getpaid_simulator.core.config import SimulatorConfig
 from getpaid_simulator.core.state import PaymentStateMachine
 from getpaid_simulator.core.storage import SimulatorStorage
 from getpaid_simulator.core.webhooks import WebhookDelivery
@@ -16,9 +17,10 @@ async def health() -> dict[str, str]:
 
 
 storage = SimulatorStorage()
+config = SimulatorConfig.from_env()
 webhook_delivery = WebhookDelivery(
     storage=storage,
-    second_key="b6ca15b0d1020e8094d9b5f8d163db54",
+    second_key=config.payu_second_key,
 )
 state = State(
     {
