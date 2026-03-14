@@ -4,6 +4,7 @@ from getpaid_simulator.core.config import SimulatorConfig
 from getpaid_simulator.core.state import PaymentStateMachine
 from getpaid_simulator.core.storage import SimulatorStorage
 from getpaid_simulator.core.webhooks import WebhookDelivery
+from getpaid_simulator.providers.paynow import routes as paynow_routes
 from getpaid_simulator.providers.payu import routes as payu_routes
 from litestar import Litestar
 from litestar import get
@@ -27,6 +28,7 @@ state = State(
         "storage": storage,
         "state_machine": PaymentStateMachine(storage),
         "webhook_delivery": webhook_delivery,
+        "config": config,
     }
 )
 
@@ -40,6 +42,12 @@ app = Litestar(
         payu_routes.cancel_order,
         payu_routes.capture_order,
         payu_routes.create_refund,
+        paynow_routes.create_payment,
+        paynow_routes.get_payment_status,
+        paynow_routes.get_payment_methods,
+        paynow_routes.create_refund,
+        paynow_routes.get_refund_status,
+        paynow_routes.cancel_refund,
     ],
     state=state,
 )

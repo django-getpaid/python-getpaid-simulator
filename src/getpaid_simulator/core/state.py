@@ -53,16 +53,23 @@ class PaymentStateMachine:
     ):
         self.storage = storage
         self._allowed_transitions = transitions or PAYU_TRANSITIONS
+        self._provider_transitions = {
+            "payu": PAYU_TRANSITIONS,
+            "paynow": PAYNOW_TRANSITIONS,
+        }
 
     def transition(self, order_id: str, new_status: str) -> dict[str, Any]:
         order = self.storage.get_order(order_id)
         if order is None:
             raise KeyError(order_id)
 
+        provider = order.get("provider", "payu")
+        transitions = self._provider_transitions.get(
+            provider, self._allowed_transitions
+        )
+
         current_status = str(order.get("status", "NEW"))
-        if new_status not in self._allowed_transitions.get(
-            current_status, set()
-        ):
+        if new_status not in transitions.get(current_status, set()):
             raise InvalidTransitionError(current_status, new_status)
 
         self.storage.update_order(order_id, status=new_status)

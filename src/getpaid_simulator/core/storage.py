@@ -138,3 +138,18 @@ class SimulatorStorage:
 
     def get_refunds(self, order_id: str) -> list[dict[str, Any]]:
         return [deepcopy(refund) for refund in self._refunds.get(order_id, [])]
+
+    def get_refund(self, refund_id: str) -> dict[str, Any] | None:
+        for refunds in self._refunds.values():
+            for refund in refunds:
+                if refund.get("id") == refund_id:
+                    return deepcopy(refund)
+        return None
+
+    def update_refund(self, refund_id: str, **updates: Any) -> None:
+        for refunds in self._refunds.values():
+            for refund in refunds:
+                if refund.get("id") == refund_id:
+                    refund.update(_centify(deepcopy(updates)))
+                    return
+        raise KeyError(refund_id)
