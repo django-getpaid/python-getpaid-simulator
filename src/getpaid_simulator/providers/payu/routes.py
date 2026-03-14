@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC
+from datetime import datetime
 from inspect import isawaitable
 from typing import Any
 from urllib.parse import parse_qsl
@@ -226,6 +228,70 @@ async def capture_order(
 
     return Response(
         content={"status": {"statusCode": "SUCCESS"}, "orderId": order_id},
+        status_code=200,
+        media_type=MediaType.JSON,
+    )
+
+
+@post("/payu/api/v2_1/orders/{order_id:str}/refunds")
+async def create_refund(
+    request: Request[Any, Any, Any],
+    order_id: str,
+) -> Response[dict[str, Any]]:
+    if not _is_authorized(request):
+        return _unauthorized_response()
+
+    order = request.app.state.storage.get_order(order_id)
+    if order is None:
+        return _not_found_response(order_id)
+
+    payload = await request.json()
+    if not isinstance(payload, dict):
+        payload = {}
+
+    refund_info = payload.get("refund", {})
+
+    amount = refund_info.get("amount")
+    if amount is None:
+        amount = order.get("totalAmount", "0")
+
+    description = refund_info.get("description", "Refund")
+    ext_refund_id = refund_info.get("extRefundId")
+    currency_code = refund_info.get(
+        "currencyCode", order.get("currencyCode", "PLN")
+    )
+
+    now = datetime.now(UTC).isoformat()
+    refund_data = {
+        "amount": amount,
+        "currencyCode": currency_code,
+        "description": description,
+        "status": "FINALIZED",
+        "creationDateTime": now,
+        "statusDateTime": now,
+    }
+
+    if ext_refund_id is not None:
+        refund_data["extRefundId"] = ext_refund_id
+
+    refund_id = request.app.state.storage.create_refund(order_id, refund_data)
+
+    response_body = {
+        "status": {"statusCode": "SUCCESS"},
+        "orderId": order_id,
+        "refund": {
+            "refundId": refund_id,
+            "extRefundId": ext_refund_id,
+            "amount": amount,
+            "currencyCode": currency_code,
+            "description": description,
+            "status": "FINALIZED",
+            "statusDateTime": now,
+        },
+    }
+
+    return Response(
+        content=response_body,
         status_code=200,
         media_type=MediaType.JSON,
     )

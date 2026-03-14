@@ -39,6 +39,7 @@ app = Litestar(
         payu_routes.get_order_info,
         payu_routes.cancel_order,
         payu_routes.capture_order,
+        payu_routes.create_refund,
     ],
     state=state,
 )
