@@ -1,5 +1,9 @@
 {% extends "components/payment_card.html" %}
 
 {% block card_actions %}
-<a href="/sim/{{ provider|lower }}/authorize/{{ order_id }}" class="btn btn-neutral">Authorize</a>
+{% if authorize_url %}
+<a href="{{ authorize_url }}" class="btn btn-neutral">Authorize</a>
+{% else %}
+<span style="color: var(--text-muted);">No UI flow</span>
+{% endif %}
 {% endblock %}

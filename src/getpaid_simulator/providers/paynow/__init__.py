@@ -1,1 +1,0 @@
-"""PayNow provider simulator."""

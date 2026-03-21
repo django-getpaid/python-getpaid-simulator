@@ -9,9 +9,11 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 import respx
+
+from getpaid_payu.simulator.webhooks import trigger_payu_webhook
+
 from getpaid_simulator.core.storage import SimulatorStorage
-from getpaid_simulator.core.config import SimulatorConfig
-from getpaid_simulator.providers.payu.webhooks import trigger_payu_webhook
+from getpaid_simulator.core.webhooks import WebhookTransport
 
 
 @pytest.fixture
@@ -20,8 +22,13 @@ def storage() -> SimulatorStorage:
 
 
 @pytest.fixture
-def config() -> SimulatorConfig:
-    return SimulatorConfig(payu_second_key="test-second-key")
+def provider_config() -> dict[str, str]:
+    return {"second_key": "test-second-key"}
+
+
+@pytest.fixture
+def webhook_transport() -> WebhookTransport:
+    return WebhookTransport(timeout=5.0, retry_delay=0.0, max_retries=1)
 
 
 @pytest.fixture
@@ -56,7 +63,8 @@ def sample_order(storage: SimulatorStorage) -> str:
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_sends_notification(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_order: str,
 ):
     """Test trigger_payu_webhook sends POST to notifyUrl."""
@@ -65,7 +73,12 @@ async def test_trigger_payu_webhook_sends_notification(
             return_value=httpx.Response(200)
         )
 
-        result = await trigger_payu_webhook(sample_order, storage, config)
+        result = await trigger_payu_webhook(
+            sample_order,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         assert result is True
         assert route.called
@@ -75,7 +88,8 @@ async def test_trigger_payu_webhook_sends_notification(
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_includes_signature_header(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_order: str,
 ):
     """Test webhook includes OpenPayU-Signature header."""
@@ -84,7 +98,12 @@ async def test_trigger_payu_webhook_includes_signature_header(
             return_value=httpx.Response(200)
         )
 
-        await trigger_payu_webhook(sample_order, storage, config)
+        await trigger_payu_webhook(
+            sample_order,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         request = route.calls.last.request
         assert "openpayu-signature" in request.headers
@@ -98,7 +117,8 @@ async def test_trigger_payu_webhook_includes_signature_header(
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_body_structure(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_order: str,
 ):
     """Test webhook body matches PayU OrderNotification format."""
@@ -107,7 +127,12 @@ async def test_trigger_payu_webhook_body_structure(
             return_value=httpx.Response(200)
         )
 
-        await trigger_payu_webhook(sample_order, storage, config)
+        await trigger_payu_webhook(
+            sample_order,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         request = route.calls.last.request
         body = json.loads(request.content)
@@ -140,7 +165,8 @@ async def test_trigger_payu_webhook_body_structure(
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_signature_verification(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_order: str,
 ):
     """Test webhook signature can be verified with PayU algorithm."""
@@ -149,7 +175,12 @@ async def test_trigger_payu_webhook_signature_verification(
             return_value=httpx.Response(200)
         )
 
-        await trigger_payu_webhook(sample_order, storage, config)
+        await trigger_payu_webhook(
+            sample_order,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         request = route.calls.last.request
         body_bytes = request.content
@@ -171,7 +202,8 @@ async def test_trigger_payu_webhook_signature_verification(
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_returns_none_if_no_notify_url(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
 ):
     """Test webhook trigger returns None if order has no notifyUrl."""
     order_data = {
@@ -188,7 +220,12 @@ async def test_trigger_payu_webhook_returns_none_if_no_notify_url(
     }
     order_id = storage.create_order(order_data, provider="payu")
 
-    result = await trigger_payu_webhook(order_id, storage, config)
+    result = await trigger_payu_webhook(
+        order_id,
+        storage,
+        provider_config,
+        webhook_transport,
+    )
 
     assert result is None
 
@@ -196,10 +233,16 @@ async def test_trigger_payu_webhook_returns_none_if_no_notify_url(
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_returns_none_if_order_not_found(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
 ):
     """Test webhook trigger returns None for nonexistent order."""
-    result = await trigger_payu_webhook("missing-order-id", storage, config)
+    result = await trigger_payu_webhook(
+        "missing-order-id",
+        storage,
+        provider_config,
+        webhook_transport,
+    )
 
     assert result is None
 
@@ -207,7 +250,8 @@ async def test_trigger_payu_webhook_returns_none_if_order_not_found(
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_retries_on_5xx(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_order: str,
 ):
     """Test webhook retries on 5xx server errors."""
@@ -219,7 +263,12 @@ async def test_trigger_payu_webhook_retries_on_5xx(
             ]
         )
 
-        result = await trigger_payu_webhook(sample_order, storage, config)
+        result = await trigger_payu_webhook(
+            sample_order,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         assert result is True
         assert route.call_count == 2
@@ -228,7 +277,8 @@ async def test_trigger_payu_webhook_retries_on_5xx(
 @pytest.mark.asyncio
 async def test_trigger_payu_webhook_no_retry_on_4xx(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_order: str,
 ):
     """Test webhook does not retry on 4xx client errors."""
@@ -237,7 +287,12 @@ async def test_trigger_payu_webhook_no_retry_on_4xx(
             return_value=httpx.Response(400, text="Bad Request")
         )
 
-        result = await trigger_payu_webhook(sample_order, storage, config)
+        result = await trigger_payu_webhook(
+            sample_order,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         assert result is False
         assert route.call_count == 1

@@ -1,7 +1,13 @@
 """Configuration system for getpaid-simulator."""
 
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
+from typing import Literal
+
+
+PluginFailureMode = Literal["strict", "warn"]
 
 
 @dataclass
@@ -14,13 +20,10 @@ class SimulatorConfig:
 
     host: str = "0.0.0.0"
     port: int = 9000
-    payu_second_key: str = "b6ca15b0d1020e8094d9b5f8d163db54"
-    paynow_signature_key: str = "sim-paynow-key-default"
-    paynow_api_key: str = "sim-paynow-api-key"
-    paynow_notify_url: str = ""
     webhook_timeout: float = 5.0
     webhook_max_retries: int = 3
     log_level: str = "INFO"
+    plugin_failure_mode: PluginFailureMode = "warn"
 
     @classmethod
     def from_env(cls) -> "SimulatorConfig":
@@ -32,22 +35,17 @@ class SimulatorConfig:
         Returns:
             SimulatorConfig: Configuration instance with env var overrides.
         """
+        plugin_failure_mode = os.environ.get(
+            "SIMULATOR_PLUGIN_FAILURE_MODE", "warn"
+        )
+        if plugin_failure_mode not in {"strict", "warn"}:
+            raise ValueError(
+                "SIMULATOR_PLUGIN_FAILURE_MODE must be 'strict' or 'warn'"
+            )
+
         return cls(
             host=os.environ.get("SIMULATOR_HOST", "0.0.0.0"),
             port=int(os.environ.get("SIMULATOR_PORT", "9000")),
-            payu_second_key=os.environ.get(
-                "SIMULATOR_PAYU_SECOND_KEY",
-                "b6ca15b0d1020e8094d9b5f8d163db54",
-            ),
-            paynow_signature_key=os.environ.get(
-                "SIMULATOR_PAYNOW_SIGNATURE_KEY",
-                "sim-paynow-key-default",
-            ),
-            paynow_api_key=os.environ.get(
-                "SIMULATOR_PAYNOW_API_KEY",
-                "sim-paynow-api-key",
-            ),
-            paynow_notify_url=os.environ.get("SIMULATOR_PAYNOW_NOTIFY_URL", ""),
             webhook_timeout=float(
                 os.environ.get("SIMULATOR_WEBHOOK_TIMEOUT", "5.0")
             ),
@@ -55,4 +53,5 @@ class SimulatorConfig:
                 os.environ.get("SIMULATOR_WEBHOOK_MAX_RETRIES", "3")
             ),
             log_level=os.environ.get("SIMULATOR_LOG_LEVEL", "INFO"),
+            plugin_failure_mode=plugin_failure_mode,
         )

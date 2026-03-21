@@ -1,7 +1,9 @@
 import pytest
 
+from getpaid_paynow.simulator.transitions import PAYNOW_TRANSITIONS
+from getpaid_payu.simulator.transitions import PAYU_TRANSITIONS
+
 from getpaid_simulator.core.state import InvalidTransitionError
-from getpaid_simulator.core.state import PAYNOW_TRANSITIONS
 from getpaid_simulator.core.state import PaymentStateMachine
 from getpaid_simulator.core.storage import SimulatorStorage
 
@@ -13,7 +15,9 @@ def storage() -> SimulatorStorage:
 
 @pytest.fixture
 def state_machine(storage: SimulatorStorage) -> PaymentStateMachine:
-    return PaymentStateMachine(storage)
+    machine = PaymentStateMachine(storage)
+    machine.register_provider("payu", PAYU_TRANSITIONS)
+    return machine
 
 
 def test_valid_happy_path_transitions(state_machine: PaymentStateMachine):
@@ -87,7 +91,8 @@ def test_invalid_transitions_raise_payu_error_response(
 
 
 def test_paynow_transitions(storage: SimulatorStorage):
-    state_machine = PaymentStateMachine(storage, transitions=PAYNOW_TRANSITIONS)
+    state_machine = PaymentStateMachine(storage)
+    state_machine.register_provider("paynow", PAYNOW_TRANSITIONS)
     order_id = storage.create_order(
         provider="paynow",
         total_amount=999,
@@ -105,7 +110,8 @@ def test_paynow_transitions(storage: SimulatorStorage):
 
 
 def test_paynow_rejects_waiting_for_confirmation(storage: SimulatorStorage):
-    state_machine = PaymentStateMachine(storage, transitions=PAYNOW_TRANSITIONS)
+    state_machine = PaymentStateMachine(storage)
+    state_machine.register_provider("paynow", PAYNOW_TRANSITIONS)
     order_id = storage.create_order(
         provider="paynow",
         total_amount=999,

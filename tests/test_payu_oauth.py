@@ -8,10 +8,9 @@ from datetime import timedelta
 import pytest
 from litestar.testing import AsyncTestClient
 
-from getpaid_simulator.app import app
 from getpaid_simulator.core.storage import SimulatorStorage
-from getpaid_simulator.providers.payu.signing import compute_signature
-from getpaid_simulator.providers.payu.signing import sign_payload
+from getpaid_payu.simulator.signing import compute_signature
+from getpaid_payu.simulator.signing import sign_payload
 
 
 class TestOAuthEndpoint:
@@ -85,7 +84,7 @@ class TestOAuthEndpoint:
         token = response.json()["access_token"]
 
         # Access storage from app state
-        storage = app.state.storage
+        storage = test_client.app.state.storage
         assert storage.validate_token(token) is True
 
     async def test_oauth_token_expiry_stored(
@@ -104,7 +103,7 @@ class TestOAuthEndpoint:
         token = response.json()["access_token"]
 
         # Check token is valid now
-        storage = app.state.storage
+        storage = test_client.app.state.storage
         assert storage.validate_token(token) is True
 
         # Manually expire the token by manipulating storage
@@ -186,7 +185,7 @@ class TestBearerTokenMiddleware:
         token = oauth_response.json()["access_token"]
 
         # Manually expire it
-        storage = app.state.storage
+        storage = test_client.app.state.storage
         token_data = storage._tokens[token]
         token_data["expires_at"] = datetime.now(UTC) - timedelta(seconds=1)
 

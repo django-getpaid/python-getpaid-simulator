@@ -19,7 +19,7 @@ def test_calculate_notification_signature():
     - HMAC-SHA256(body.encode(), signature_key.encode())
     - base64 encode result
     """
-    from getpaid_simulator.providers.paynow.signing import (
+    from getpaid_paynow.simulator.signing import (
         calculate_notification_signature,
     )
 
@@ -46,7 +46,7 @@ def test_calculate_notification_signature_matches_real_client():
 
     CRITICAL: This test verifies byte-identical output for identical inputs.
     """
-    from getpaid_simulator.providers.paynow.signing import (
+    from getpaid_paynow.simulator.signing import (
         calculate_notification_signature,
     )
 
@@ -92,7 +92,7 @@ def test_calculate_request_signature():
     - HMAC-SHA256(payload_json.encode(), signature_key.encode())
     - base64 encode result
     """
-    from getpaid_simulator.providers.paynow.signing import (
+    from getpaid_paynow.simulator.signing import (
         calculate_request_signature,
     )
 
@@ -136,7 +136,7 @@ def test_calculate_request_signature_with_parameters():
 
     Parameters must be sorted alphabetically by key.
     """
-    from getpaid_simulator.providers.paynow.signing import (
+    from getpaid_paynow.simulator.signing import (
         calculate_request_signature,
     )
 
@@ -186,12 +186,12 @@ def test_paynow_sign_webhook_returns_correct_header():
     This is the signer callable for WebhookDelivery.
     Must return: {"Signature": "base64_signature"}
     """
-    from getpaid_simulator.providers.paynow.signing import paynow_sign_webhook
+    from getpaid_paynow.simulator.signing import sign_webhook
 
     body = b'{"orderId":"TEST123","status":"CONFIRMED"}'
     signature_key = "webhook-key-789"
 
-    result = paynow_sign_webhook(body, signature_key)
+    result = sign_webhook(body, signature_key)
 
     # Must be dict with Signature key
     assert isinstance(result, dict)
@@ -212,12 +212,12 @@ def test_paynow_sign_webhook_returns_correct_header():
 
 def test_paynow_sign_webhook_accepts_bytes():
     """Test paynow_sign_webhook accepts bytes body (WebhookDelivery contract)."""
-    from getpaid_simulator.providers.paynow.signing import paynow_sign_webhook
+    from getpaid_paynow.simulator.signing import sign_webhook
 
     body = b'{"test":"data"}'
     signature_key = "key-123"
 
-    result = paynow_sign_webhook(body, signature_key)
+    result = sign_webhook(body, signature_key)
 
     assert isinstance(result, dict)
     assert "Signature" in result
@@ -225,12 +225,12 @@ def test_paynow_sign_webhook_accepts_bytes():
 
 def test_paynow_sign_webhook_empty_body():
     """Test paynow_sign_webhook handles empty body."""
-    from getpaid_simulator.providers.paynow.signing import paynow_sign_webhook
+    from getpaid_paynow.simulator.signing import sign_webhook
 
     body = b""
     signature_key = "key-456"
 
-    result = paynow_sign_webhook(body, signature_key)
+    result = sign_webhook(body, signature_key)
 
     expected_signature = base64.b64encode(
         hmac.new(

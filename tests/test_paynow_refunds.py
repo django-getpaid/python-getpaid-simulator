@@ -20,7 +20,7 @@ async def test_paynow_create_refund(test_client):
     """Test POST /v3/payments/{payment_id}/refunds creates refund and returns 201."""
     # Create payment first
     create_response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json=_sample_payment_payload(),
     )
@@ -33,7 +33,7 @@ async def test_paynow_create_refund(test_client):
 
     # Create refund
     refund_response = await test_client.post(
-        f"/v3/payments/{payment_id}/refunds",
+        f"/paynow/v3/payments/{payment_id}/refunds",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={"amount": 500, "reason": "RMA"},
     )
@@ -55,7 +55,7 @@ async def test_paynow_create_refund_not_confirmed(test_client):
     """Test refund endpoint returns error if payment not in CONFIRMED status."""
     # Create payment (status=NEW)
     create_response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json=_sample_payment_payload(),
     )
@@ -63,7 +63,7 @@ async def test_paynow_create_refund_not_confirmed(test_client):
 
     # Attempt refund on NEW payment
     refund_response = await test_client.post(
-        f"/v3/payments/{payment_id}/refunds",
+        f"/paynow/v3/payments/{payment_id}/refunds",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={"amount": 500, "reason": "RMA"},
     )
@@ -79,7 +79,7 @@ async def test_paynow_create_refund_not_confirmed(test_client):
 async def test_paynow_create_refund_payment_not_found(test_client):
     """Test refund endpoint returns 404 if payment doesn't exist."""
     refund_response = await test_client.post(
-        "/v3/payments/nonexistent-payment/refunds",
+        "/paynow/v3/payments/nonexistent-payment/refunds",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={"amount": 500, "reason": "RMA"},
     )
@@ -95,7 +95,7 @@ async def test_paynow_get_refund_status(test_client):
     """Test GET /v3/refunds/{refund_id}/status returns refund status."""
     # Create and confirm payment
     create_response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json=_sample_payment_payload(),
     )
@@ -105,7 +105,7 @@ async def test_paynow_get_refund_status(test_client):
 
     # Create refund
     refund_response = await test_client.post(
-        f"/v3/payments/{payment_id}/refunds",
+        f"/paynow/v3/payments/{payment_id}/refunds",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={"amount": 750, "reason": "OTHER"},
     )
@@ -113,7 +113,7 @@ async def test_paynow_get_refund_status(test_client):
 
     # Get refund status
     status_response = await test_client.get(
-        f"/v3/refunds/{refund_id}/status",
+        f"/paynow/v3/refunds/{refund_id}/status",
         headers={"Api-Key": "test-key", "Signature": "abc"},
     )
 
@@ -128,7 +128,7 @@ async def test_paynow_get_refund_status(test_client):
 async def test_paynow_get_refund_status_not_found(test_client):
     """Test GET /v3/refunds/{refund_id}/status returns 404 for nonexistent refund."""
     status_response = await test_client.get(
-        "/v3/refunds/nonexistent-refund/status",
+        "/paynow/v3/refunds/nonexistent-refund/status",
         headers={"Api-Key": "test-key", "Signature": "abc"},
     )
 
@@ -143,7 +143,7 @@ async def test_paynow_cancel_refund(test_client):
     """Test POST /v3/refunds/{refund_id}/cancel cancels a refund."""
     # Create and confirm payment
     create_response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json=_sample_payment_payload(),
     )
@@ -153,7 +153,7 @@ async def test_paynow_cancel_refund(test_client):
 
     # Create refund
     refund_response = await test_client.post(
-        f"/v3/payments/{payment_id}/refunds",
+        f"/paynow/v3/payments/{payment_id}/refunds",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={"amount": 1000, "reason": "REFUND_BEFORE_14"},
     )
@@ -162,7 +162,7 @@ async def test_paynow_cancel_refund(test_client):
     # Note: In simulator, refunds are immediately SUCCESSFUL, so cancel won't do much
     # but we need to support the endpoint for API contract completeness
     cancel_response = await test_client.post(
-        f"/v3/refunds/{refund_id}/cancel",
+        f"/paynow/v3/refunds/{refund_id}/cancel",
         headers={"Api-Key": "test-key", "Signature": "abc"},
     )
 
@@ -178,7 +178,7 @@ async def test_paynow_cancel_refund(test_client):
 async def test_paynow_cancel_refund_not_found(test_client):
     """Test POST /v3/refunds/{refund_id}/cancel returns 404 for nonexistent refund."""
     cancel_response = await test_client.post(
-        "/v3/refunds/nonexistent-refund/cancel",
+        "/paynow/v3/refunds/nonexistent-refund/cancel",
         headers={"Api-Key": "test-key", "Signature": "abc"},
     )
 
@@ -193,7 +193,7 @@ async def test_paynow_refund_error_format(test_client):
     """Test refund errors use PayNow format: {statusCode, errors: [{errorType, message}]}."""
     # Try to refund nonexistent payment
     refund_response = await test_client.post(
-        "/v3/payments/fake-id/refunds",
+        "/paynow/v3/payments/fake-id/refunds",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={"amount": 100, "reason": "RMA"},
     )
@@ -217,7 +217,7 @@ async def test_paynow_refund_amount_not_centified(test_client):
     """Test refund amounts are stored as integers (not centified)."""
     # Create and confirm payment
     create_response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json=_sample_payment_payload(),
     )
@@ -227,7 +227,7 @@ async def test_paynow_refund_amount_not_centified(test_client):
 
     # Create refund with amount 500 (should be stored as "500", not "50000")
     refund_response = await test_client.post(
-        f"/v3/payments/{payment_id}/refunds",
+        f"/paynow/v3/payments/{payment_id}/refunds",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={"amount": 500, "reason": "RMA"},
     )
@@ -241,7 +241,7 @@ async def test_paynow_refund_amount_not_centified(test_client):
 
     # Also verify via status endpoint
     status_response = await test_client.get(
-        f"/v3/refunds/{refund_id}/status",
+        f"/paynow/v3/refunds/{refund_id}/status",
         headers={"Api-Key": "test-key", "Signature": "abc"},
     )
     assert status_response.json()["amount"] == 500

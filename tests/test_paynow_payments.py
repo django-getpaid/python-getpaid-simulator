@@ -14,7 +14,7 @@ def _sample_payment_payload() -> dict[str, object]:
 @pytest.mark.asyncio
 async def test_paynow_create_payment(test_client, caplog):
     response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={
             "Api-Key": "any-api-key-is-accepted",
             "Host": "simulator.local",
@@ -41,7 +41,7 @@ async def test_paynow_create_payment(test_client, caplog):
 @pytest.mark.asyncio
 async def test_paynow_create_payment_redirect_url(test_client):
     response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={
             "Api-Key": "different-key",
             "Host": "example.test",
@@ -60,14 +60,14 @@ async def test_paynow_create_payment_redirect_url(test_client):
 @pytest.mark.asyncio
 async def test_paynow_get_status(test_client):
     create_response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json=_sample_payment_payload(),
     )
     payment_id = create_response.json()["paymentId"]
 
     status_response = await test_client.get(
-        f"/v3/payments/{payment_id}/status",
+        f"/paynow/v3/payments/{payment_id}/status",
         headers={"Api-Key": "another-key", "Signature": "abc"},
     )
 
@@ -81,7 +81,7 @@ async def test_paynow_get_status(test_client):
 @pytest.mark.asyncio
 async def test_paynow_payment_methods(test_client):
     response = await test_client.get(
-        "/v3/payments/paymentmethods",
+        "/paynow/v3/payments/paymentmethods",
         headers={"Api-Key": "test-key", "Signature": "abc"},
     )
 
@@ -105,7 +105,7 @@ async def test_paynow_payment_methods(test_client):
 @pytest.mark.asyncio
 async def test_paynow_create_payment_validation(test_client):
     response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json={},
     )
@@ -120,7 +120,7 @@ async def test_paynow_create_payment_validation(test_client):
 @pytest.mark.asyncio
 async def test_paynow_amounts_not_centified(test_client):
     response = await test_client.post(
-        "/v3/payments",
+        "/paynow/v3/payments",
         headers={"Api-Key": "test-key", "Signature": "abc"},
         json=_sample_payment_payload(),
     )

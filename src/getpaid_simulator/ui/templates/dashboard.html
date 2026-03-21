@@ -5,11 +5,23 @@
 {% block content %}
 <div class="dashboard-header">
     <h2>Payments Dashboard</h2>
+    {% if failed_plugins %}
+    <div class="empty-state" style="text-align: left; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #2f1818; border: 1px solid #b45309; border-radius: var(--border-radius);">
+        <h3 style="margin-top: 0;">Plugin warnings</h3>
+        <p style="margin-bottom: 0.75rem; color: var(--text-muted);">The simulator started in degraded mode. Some provider plugins failed to initialize.</p>
+        <ul style="margin: 0; padding-left: 1.2rem;">
+            {% for failure in failed_plugins %}
+            <li><strong>{{ failure.slug }}</strong> ({{ failure.stage }}): {{ failure.error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
     <div class="provider-filters" style="margin-bottom: 2rem;">
         <span>Filter by provider:</span>
         <a href="/sim/dashboard" class="btn {% if not current_provider %}btn-neutral{% endif %}">All</a>
-        <a href="/sim/dashboard?provider=payu" class="btn {% if current_provider == 'payu' %}btn-neutral{% endif %}">PayU</a>
-        <a href="/sim/dashboard?provider=paynow" class="btn {% if current_provider == 'paynow' %}btn-neutral{% endif %}">PayNow</a>
+        {% for provider_filter in provider_filters %}
+        <a href="/sim/dashboard?provider={{ provider_filter.slug }}" class="btn {% if current_provider == provider_filter.slug %}btn-neutral{% endif %}">{{ provider_filter.display_name }}</a>
+        {% endfor %}
     </div>
 </div>
 
@@ -19,7 +31,8 @@
             {% set amount = order.formatted_amount %}
             {% set status = order.status %}
             {% set order_id = order.id %}
-            {% set provider = order.provider %}
+            {% set provider = order.provider_display_name %}
+            {% set authorize_url = order.authorize_url %}
             {% include "components/dashboard_payment_card.html" %}
         {% endfor %}
     {% else %}

@@ -1,12 +1,11 @@
 """Tests for CLI entry point."""
 
-from unittest.mock import MagicMock
+import sys
 from unittest.mock import patch
 
 import pytest
 
 from getpaid_simulator.__main__ import main
-from getpaid_simulator.core.config import SimulatorConfig
 
 
 class TestCLIDefaults:
@@ -16,7 +15,7 @@ class TestCLIDefaults:
         """Test main() uses config defaults when no args provided."""
         with patch("getpaid_simulator.__main__.uvicorn.run") as mock_run:
             with patch(
-                "getpaid_simulator.__main__.sys.argv",
+                "sys.argv",
                 ["getpaid-simulator"],
             ):
                 try:
@@ -40,7 +39,7 @@ class TestCLIDefaults:
 
         with patch("getpaid_simulator.__main__.uvicorn.run") as mock_run:
             with patch(
-                "getpaid_simulator.__main__.sys.argv",
+                "sys.argv",
                 ["getpaid-simulator", "--port", "8080"],
             ):
                 try:
@@ -60,7 +59,7 @@ class TestCLIDefaults:
 
         with patch("getpaid_simulator.__main__.uvicorn.run") as mock_run:
             with patch(
-                "getpaid_simulator.__main__.sys.argv",
+                "sys.argv",
                 ["getpaid-simulator", "--host", "127.0.0.1"],
             ):
                 try:
@@ -80,7 +79,7 @@ class TestCLIDefaults:
 
         with patch("getpaid_simulator.__main__.uvicorn.run") as mock_run:
             with patch(
-                "getpaid_simulator.__main__.sys.argv",
+                "sys.argv",
                 ["getpaid-simulator", "--log-level", "DEBUG"],
             ):
                 try:
@@ -96,7 +95,7 @@ class TestCLIDefaults:
     def test_cli_help_shows_arguments(self) -> None:
         """Test --help displays all 3 CLI arguments."""
         with patch(
-            "getpaid_simulator.__main__.sys.argv",
+            "sys.argv",
             ["getpaid-simulator", "--help"],
         ):
             with pytest.raises(SystemExit):
@@ -112,7 +111,7 @@ class TestCLIDefaults:
 
         with patch("getpaid_simulator.__main__.uvicorn.run") as mock_run:
             with patch(
-                "getpaid_simulator.__main__.sys.argv",
+                "sys.argv",
                 ["getpaid-simulator", "--port", "8080", "--host", "127.0.0.1"],
             ):
                 try:
@@ -124,3 +123,26 @@ class TestCLIDefaults:
                 call_kwargs = mock_run.call_args[1]
                 assert call_kwargs["port"] == 8080
                 assert call_kwargs["host"] == "127.0.0.1"
+
+    def test_cli_custom_plugin_failure_mode(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SIMULATOR_PLUGIN_FAILURE_MODE", "warn")
+
+        with patch("getpaid_simulator.__main__.create_app") as mock_create_app:
+            with patch("getpaid_simulator.__main__.uvicorn.run"):
+                with patch(
+                    "sys.argv",
+                    [
+                        "getpaid-simulator",
+                        "--plugin-failure-mode",
+                        "strict",
+                    ],
+                ):
+                    try:
+                        main()
+                    except SystemExit:
+                        pass
+
+        config = mock_create_app.call_args.args[0]
+        assert config.plugin_failure_mode == "strict"

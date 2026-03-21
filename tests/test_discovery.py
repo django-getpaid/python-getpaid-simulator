@@ -1,40 +1,110 @@
 from types import SimpleNamespace
 
-import getpaid_simulator.core.discovery as discovery
+import pytest
+
+import getpaid_simulator.plugins as plugins
+from getpaid_simulator.core.config import SimulatorConfig
+from getpaid_simulator.spi import SIMULATOR_PLUGIN_API_VERSION
+from getpaid_simulator.spi import SimulatorProviderPlugin
 
 
-def test_discover_providers_uses_entry_points(monkeypatch):
+def _plugin(
+    slug: str,
+    display_name: str | None = None,
+    *,
+    api_version: str = SIMULATOR_PLUGIN_API_VERSION,
+) -> SimulatorProviderPlugin:
+    return SimulatorProviderPlugin(
+        api_version=api_version,
+        slug=slug,
+        display_name=display_name or slug.title(),
+        api_handlers=(),
+        ui_handlers=(),
+        transitions={"NEW": {"PENDING"}},
+        load_config=lambda env: {"provider": slug},
+    )
+
+
+def _entry_point(name: str, factory):
+    return SimpleNamespace(name=name, load=lambda: factory)
+
+
+def test_load_provider_plugins_uses_simulator_entry_points(monkeypatch):
     def fake_entry_points(*, group: str):
-        assert group == "getpaid.backends"
+        assert group == "getpaid.simulator.providers"
         return [
-            SimpleNamespace(name="payu"),
-            SimpleNamespace(name="paynow"),
+            _entry_point("payu", lambda: _plugin("payu", "PayU")),
+            _entry_point("paynow", lambda: _plugin("paynow", "PayNow")),
         ]
 
-    monkeypatch.setattr(discovery, "entry_points", fake_entry_points)
+    monkeypatch.setattr(plugins, "entry_points", fake_entry_points)
 
-    assert discovery.discover_providers() == ["payu", "paynow"]
+    result = plugins.load_provider_plugins(SimulatorConfig())
+
+    assert [plugin.slug for plugin in result.loaded_plugins] == [
+        "paynow",
+        "payu",
+    ]
+    assert result.failed_plugins == ()
 
 
-def test_discover_providers_falls_back_to_provider_directories(
+def test_load_provider_plugins_warn_mode_skips_failed_plugin(monkeypatch):
+    def fake_entry_points(*, group: str):
+        assert group == "getpaid.simulator.providers"
+        return [
+            _entry_point("payu", lambda: _plugin("payu")),
+            _entry_point(
+                "brokenpay", lambda: (_ for _ in ()).throw(ImportError("boom"))
+            ),
+        ]
+
+    monkeypatch.setattr(plugins, "entry_points", fake_entry_points)
+
+    result = plugins.load_provider_plugins(
+        SimulatorConfig(plugin_failure_mode="warn")
+    )
+
+    assert [plugin.slug for plugin in result.loaded_plugins] == ["payu"]
+    assert result.failed_plugins[0].slug == "brokenpay"
+    assert result.failed_plugins[0].stage == "factory"
+
+
+def test_load_provider_plugins_strict_mode_raises_on_failed_plugin(
     monkeypatch,
-    tmp_path,
 ):
-    (tmp_path / "payu").mkdir()
-    (tmp_path / "paynow").mkdir()
-    (tmp_path / "README.md").write_text("ignore me", encoding="utf-8")
+    def fake_entry_points(*, group: str):
+        assert group == "getpaid.simulator.providers"
+        return [
+            _entry_point(
+                "brokenpay",
+                lambda: (_ for _ in ()).throw(RuntimeError("bad plugin")),
+            )
+        ]
 
-    monkeypatch.setattr(discovery, "entry_points", lambda *, group: [])
-    monkeypatch.setattr(discovery, "PROVIDERS_DIR", tmp_path)
+    monkeypatch.setattr(plugins, "entry_points", fake_entry_points)
 
-    assert discovery.discover_providers() == ["payu", "paynow"]
+    with pytest.raises(plugins.PluginLoadError):
+        plugins.load_provider_plugins(
+            SimulatorConfig(plugin_failure_mode="strict")
+        )
 
 
-def test_discover_providers_returns_only_directories(monkeypatch, tmp_path):
-    (tmp_path / "payu").mkdir()
-    (tmp_path / "not-a-provider.txt").write_text("ignored", encoding="utf-8")
+def test_load_provider_plugins_rejects_incompatible_api_version(monkeypatch):
+    def fake_entry_points(*, group: str):
+        assert group == "getpaid.simulator.providers"
+        return [
+            _entry_point(
+                "payu",
+                lambda: _plugin("payu", api_version="999"),
+            )
+        ]
 
-    monkeypatch.setattr(discovery, "entry_points", lambda *, group: [])
-    monkeypatch.setattr(discovery, "PROVIDERS_DIR", tmp_path)
+    monkeypatch.setattr(plugins, "entry_points", fake_entry_points)
 
-    assert discovery.discover_providers() == ["payu"]
+    result = plugins.load_provider_plugins(
+        SimulatorConfig(plugin_failure_mode="warn")
+    )
+
+    assert result.loaded_plugins == ()
+    assert result.failed_plugins[0].slug == "payu"
+    assert result.failed_plugins[0].stage == "compatibility"

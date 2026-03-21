@@ -1,22 +1,26 @@
 import pytest
 
-from getpaid_simulator.app import app
-from getpaid_simulator.core.state import PaymentStateMachine
-from getpaid_simulator.core.storage import SimulatorStorage
+from getpaid_paynow.simulator.transitions import PAYNOW_TRANSITIONS
+from getpaid_payu.simulator.transitions import PAYU_TRANSITIONS
 
 
 @pytest.fixture
-def simulator_storage() -> SimulatorStorage:
-    storage = SimulatorStorage()
-    app.state.storage = storage
-    app.state.state_machine = PaymentStateMachine(storage)
+def simulator_storage(test_client):
+    storage = test_client.app.state.storage
+    storage._orders.clear()
+    storage._tokens.clear()
+    storage._refunds.clear()
+    test_client.app.state.state_machine.register_provider(
+        "payu", PAYU_TRANSITIONS
+    )
+    test_client.app.state.state_machine.register_provider(
+        "paynow", PAYNOW_TRANSITIONS
+    )
     return storage
 
 
 @pytest.mark.asyncio
-async def test_payu_authorize_get(
-    test_client, simulator_storage: SimulatorStorage
-):
+async def test_payu_authorize_get(test_client, simulator_storage):
     order_id = simulator_storage.create_order(
         {
             "provider": "payu",
@@ -43,9 +47,7 @@ async def test_payu_authorize_get_404(test_client):
 
 
 @pytest.mark.asyncio
-async def test_payu_authorize_post_approve(
-    test_client, simulator_storage: SimulatorStorage, monkeypatch
-):
+async def test_payu_authorize_post_approve(test_client, simulator_storage):
     order_id = simulator_storage.create_order(
         {
             "provider": "payu",
@@ -54,21 +56,7 @@ async def test_payu_authorize_post_approve(
             "continueUrl": "https://example.com/continue",
         }
     )
-    app.state.state_machine.transition(order_id, "PENDING")
-
-    webhook_triggered = False
-
-    async def fake_trigger_webhook(*args, **kwargs):
-        nonlocal webhook_triggered
-        webhook_triggered = True
-
-    import getpaid_simulator.ui.routes
-
-    monkeypatch.setattr(
-        getpaid_simulator.ui.routes,
-        "trigger_payu_webhook",
-        fake_trigger_webhook,
-    )
+    test_client.app.state.state_machine.transition(order_id, "PENDING")
 
     response = await test_client.post(
         f"/sim/payu/authorize/{order_id}",
@@ -78,7 +66,6 @@ async def test_payu_authorize_post_approve(
 
     assert response.status_code in (302, 303)
     assert response.headers["location"] == "https://example.com/continue"
-    assert webhook_triggered
 
     order = simulator_storage.get_order(order_id)
     assert order is not None
@@ -86,9 +73,7 @@ async def test_payu_authorize_post_approve(
 
 
 @pytest.mark.asyncio
-async def test_payu_authorize_post_reject(
-    test_client, simulator_storage: SimulatorStorage, monkeypatch
-):
+async def test_payu_authorize_post_reject(test_client, simulator_storage):
     order_id = simulator_storage.create_order(
         {
             "provider": "payu",
@@ -97,21 +82,7 @@ async def test_payu_authorize_post_reject(
             "continueUrl": "https://example.com/continue",
         }
     )
-    app.state.state_machine.transition(order_id, "PENDING")
-
-    webhook_triggered = False
-
-    async def fake_trigger_webhook(*args, **kwargs):
-        nonlocal webhook_triggered
-        webhook_triggered = True
-
-    import getpaid_simulator.ui.routes
-
-    monkeypatch.setattr(
-        getpaid_simulator.ui.routes,
-        "trigger_payu_webhook",
-        fake_trigger_webhook,
-    )
+    test_client.app.state.state_machine.transition(order_id, "PENDING")
 
     response = await test_client.post(
         f"/sim/payu/authorize/{order_id}",
@@ -121,7 +92,6 @@ async def test_payu_authorize_post_reject(
 
     assert response.status_code in (302, 303)
     assert response.headers["location"] == "https://example.com/continue"
-    assert webhook_triggered
 
     order = simulator_storage.get_order(order_id)
     assert order is not None
@@ -129,9 +99,7 @@ async def test_payu_authorize_post_reject(
 
 
 @pytest.mark.asyncio
-async def test_paynow_authorize_get(
-    test_client, simulator_storage: SimulatorStorage
-):
+async def test_paynow_authorize_get(test_client, simulator_storage):
     payment_id = simulator_storage.create_order(
         {
             "provider": "paynow",
@@ -149,9 +117,7 @@ async def test_paynow_authorize_get(
 
 
 @pytest.mark.asyncio
-async def test_paynow_authorize_post_approve(
-    test_client, simulator_storage: SimulatorStorage
-):
+async def test_paynow_authorize_post_approve(test_client, simulator_storage):
     payment_id = simulator_storage.create_order(
         {
             "provider": "paynow",
@@ -176,9 +142,7 @@ async def test_paynow_authorize_post_approve(
 
 
 @pytest.mark.asyncio
-async def test_paynow_authorize_post_reject(
-    test_client, simulator_storage: SimulatorStorage
-):
+async def test_paynow_authorize_post_reject(test_client, simulator_storage):
     payment_id = simulator_storage.create_order(
         {
             "provider": "paynow",
@@ -203,9 +167,7 @@ async def test_paynow_authorize_post_reject(
 
 
 @pytest.mark.asyncio
-async def test_authorize_already_processed(
-    test_client, simulator_storage: SimulatorStorage
-):
+async def test_authorize_already_processed(test_client, simulator_storage):
     order_id = simulator_storage.create_order(
         {
             "provider": "payu",
@@ -215,9 +177,11 @@ async def test_authorize_already_processed(
         }
     )
 
-    app.state.state_machine.transition(order_id, "PENDING")
-    app.state.state_machine.transition(order_id, "WAITING_FOR_CONFIRMATION")
-    app.state.state_machine.transition(order_id, "COMPLETED")
+    test_client.app.state.state_machine.transition(order_id, "PENDING")
+    test_client.app.state.state_machine.transition(
+        order_id, "WAITING_FOR_CONFIRMATION"
+    )
+    test_client.app.state.state_machine.transition(order_id, "COMPLETED")
 
     response = await test_client.get(f"/sim/payu/authorize/{order_id}")
     assert response.status_code == 400

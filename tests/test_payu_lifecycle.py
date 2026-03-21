@@ -1,30 +1,29 @@
 import pytest
 
-from getpaid_simulator.app import app
-from getpaid_simulator.core.state import PaymentStateMachine
-from getpaid_simulator.core.storage import SimulatorStorage
+from getpaid_payu.simulator.transitions import PAYU_TRANSITIONS
 
 
 @pytest.fixture
-def simulator_storage() -> SimulatorStorage:
-    storage = SimulatorStorage()
-    app.state.storage = storage
-    app.state.state_machine = PaymentStateMachine(storage)
-    app.state.webhook_delivery = None
+def simulator_storage(test_client):
+    storage = test_client.app.state.storage
+    storage._orders.clear()
+    storage._tokens.clear()
+    storage._refunds.clear()
+    test_client.app.state.state_machine.register_provider(
+        "payu", PAYU_TRANSITIONS
+    )
     return storage
 
 
 @pytest.fixture
-def auth_headers(simulator_storage: SimulatorStorage) -> dict[str, str]:
+def auth_headers(simulator_storage) -> dict[str, str]:
     token = simulator_storage.create_token("300746")["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.mark.asyncio
 async def test_order_info_and_cancel(
-    test_client,
-    simulator_storage: SimulatorStorage,
-    auth_headers: dict[str, str],
+    test_client, simulator_storage, auth_headers
 ):
     order_id = simulator_storage.create_order(
         {
@@ -68,8 +67,8 @@ async def test_order_info_and_cancel(
 @pytest.mark.asyncio
 async def test_cancel_completed_order_returns_error_value_invalid(
     test_client,
-    simulator_storage: SimulatorStorage,
-    auth_headers: dict[str, str],
+    simulator_storage,
+    auth_headers,
 ):
     order_id = simulator_storage.create_order(
         {
@@ -94,8 +93,8 @@ async def test_cancel_completed_order_returns_error_value_invalid(
 @pytest.mark.asyncio
 async def test_capture_waiting_for_confirmation_order(
     test_client,
-    simulator_storage: SimulatorStorage,
-    auth_headers: dict[str, str],
+    simulator_storage,
+    auth_headers,
 ):
     order_id = simulator_storage.create_order(
         {
@@ -126,8 +125,8 @@ async def test_capture_waiting_for_confirmation_order(
 @pytest.mark.asyncio
 async def test_capture_pending_order_returns_error_value_invalid(
     test_client,
-    simulator_storage: SimulatorStorage,
-    auth_headers: dict[str, str],
+    simulator_storage,
+    auth_headers,
 ):
     order_id = simulator_storage.create_order(
         {
@@ -160,10 +159,10 @@ async def test_capture_pending_order_returns_error_value_invalid(
 )
 async def test_non_existent_order_returns_404(
     test_client,
-    simulator_storage: SimulatorStorage,
-    auth_headers: dict[str, str],
-    method: str,
-    path: str,
+    simulator_storage,
+    auth_headers,
+    method,
+    path,
 ):
     response = await getattr(test_client, method)(path, headers=auth_headers)
     assert response.status_code == 404

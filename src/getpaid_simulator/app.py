@@ -1,5 +1,7 @@
 """Litestar application for payment gateway simulator."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 
@@ -10,102 +12,107 @@ from litestar.datastructures import State
 from litestar.template.config import TemplateConfig
 
 from getpaid_simulator.core.config import SimulatorConfig
-from getpaid_simulator.core.discovery import discover_providers
+from getpaid_simulator.core.state import InvalidTransitionError
 from getpaid_simulator.core.state import PaymentStateMachine
 from getpaid_simulator.core.storage import SimulatorStorage
-from getpaid_simulator.core.webhooks import WebhookDelivery
-from getpaid_simulator.providers.paynow import routes as paynow_routes
-from getpaid_simulator.providers.payu import routes as payu_routes
+from getpaid_simulator.core.webhooks import WebhookTransport
+from getpaid_simulator.plugins import PluginLoadResult
+from getpaid_simulator.plugins import load_provider_plugins
 from getpaid_simulator.ui import routes as ui_routes
 
 
 logger = logging.getLogger(__name__)
 
 
-PAYU_ROUTE_HANDLERS = [
-    payu_routes.oauth_endpoint,
-    payu_routes.test_protected_endpoint,
-    payu_routes.create_order,
-    payu_routes.get_order_info,
-    payu_routes.cancel_order,
-    payu_routes.capture_order,
-    payu_routes.create_refund,
-]
-
-PAYNOW_ROUTE_HANDLERS = [
-    paynow_routes.create_payment,
-    paynow_routes.get_payment_status,
-    paynow_routes.get_payment_methods,
-    paynow_routes.create_refund,
-    paynow_routes.get_refund_status,
-    paynow_routes.cancel_refund,
-]
-
-
-PROVIDER_ROUTES = {
-    "payu": {
-        "prefix": "/payu",
-        "routes": PAYU_ROUTE_HANDLERS,
-        "display_name": "PayU",
-    },
-    "paynow": {
-        "prefix": "/paynow",
-        "routes": PAYNOW_ROUTE_HANDLERS,
-        "display_name": "PayNow",
-    },
-}
-
-
 @get("/")
-async def health() -> dict[str, str]:
+async def health(state: State) -> dict[str, object]:
     """Health check endpoint."""
-    return {"status": "ok", "service": "getpaid-simulator"}
+    loaded_plugins = list(state.loaded_plugins)
+    failed_plugins = [failure.slug for failure in state.failed_plugins]
+    status = "degraded" if failed_plugins else "ok"
+    return {
+        "status": status,
+        "service": "getpaid-simulator",
+        "loadedProviders": loaded_plugins,
+        "failedProviders": failed_plugins,
+    }
 
 
-def create_app() -> Litestar:
-    discovered_providers = discover_providers()
-    route_handlers = [health]
-    provider_display_names: list[str] = []
-    for provider_slug in discovered_providers:
-        provider_config = PROVIDER_ROUTES.get(provider_slug)
-        if provider_slug == "payu":
-            route_handlers.extend(PAYU_ROUTE_HANDLERS)
-        elif provider_slug == "paynow":
-            route_handlers.extend(PAYNOW_ROUTE_HANDLERS)
+@get("/sim/status")
+async def simulator_status(state: State) -> dict[str, object]:
+    """Detailed status endpoint for the simulator host."""
+    return {
+        "status": "degraded" if state.failed_plugins else "ok",
+        "loadedProviders": [
+            {
+                "slug": slug,
+                "displayName": plugin.display_name,
+            }
+            for slug, plugin in state.loaded_plugins.items()
+        ],
+        "failedProviders": [
+            {
+                "slug": failure.slug,
+                "stage": failure.stage,
+                "error": failure.error,
+            }
+            for failure in state.failed_plugins
+        ],
+    }
 
-        if provider_config is None:
-            provider_display_names.append(provider_slug.title())
-            continue
-        provider_display_names.append(str(provider_config["display_name"]))
 
-    route_handlers.extend(
-        [
-            getattr(ui_routes, "dashboard"),
-            getattr(ui_routes, "payu_authorize_get"),
-            getattr(ui_routes, "payu_authorize_post"),
-            getattr(ui_routes, "paynow_authorize_get"),
-            getattr(ui_routes, "paynow_authorize_post"),
-        ]
-    )
+def create_app(
+    config: SimulatorConfig | None = None,
+    plugin_load_result: PluginLoadResult | None = None,
+) -> Litestar:
+    config = config or SimulatorConfig.from_env()
+    plugin_load_result = plugin_load_result or load_provider_plugins(config)
+    loaded_plugins = {
+        plugin.slug: plugin for plugin in plugin_load_result.loaded_plugins
+    }
+    state_machine = PaymentStateMachine(SimulatorStorage())
+    for plugin in plugin_load_result.loaded_plugins:
+        state_machine.register_provider(plugin.slug, plugin.transitions)
 
-    logger.info(
-        "Discovered providers: %s",
-        ", ".join(provider_display_names),
-    )
+    route_handlers = [health, simulator_status, ui_routes.dashboard]
+    for plugin in plugin_load_result.loaded_plugins:
+        route_handlers.extend(plugin.api_handlers)
+        route_handlers.extend(plugin.ui_handlers)
 
-    storage = SimulatorStorage()
-    config = SimulatorConfig.from_env()
-    webhook_delivery = WebhookDelivery(
-        storage=storage,
-        second_key=config.payu_second_key,
+    loaded_display_names = [
+        plugin.display_name for plugin in plugin_load_result.loaded_plugins
+    ]
+    failed_slugs = [
+        failure.slug for failure in plugin_load_result.failed_plugins
+    ]
+    if loaded_display_names:
+        logger.info(
+            "Loaded simulator plugins: %s",
+            ", ".join(loaded_display_names),
+        )
+    else:
+        logger.info("Loaded simulator plugins: none")
+    if failed_slugs:
+        logger.warning(
+            "Failed simulator plugins: %s",
+            ", ".join(failed_slugs),
+        )
+
+    storage = state_machine.storage
+    webhook_transport = WebhookTransport(
+        timeout=config.webhook_timeout,
+        max_retries=config.webhook_max_retries,
     )
     state = State(
         {
             "storage": storage,
-            "state_machine": PaymentStateMachine(storage),
-            "webhook_delivery": webhook_delivery,
+            "state_machine": state_machine,
+            "webhook_transport": webhook_transport,
             "config": config,
-            "discovered_providers": discovered_providers,
+            "loaded_plugins": loaded_plugins,
+            "provider_configs": plugin_load_result.provider_configs,
+            "failed_plugins": plugin_load_result.failed_plugins,
+            "invalid_transition_error": InvalidTransitionError,
         }
     )
 

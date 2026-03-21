@@ -11,9 +11,11 @@ import httpx
 import pytest
 import respx
 from getpaid_paynow.client import PaynowClient
-from getpaid_simulator.core.config import SimulatorConfig
+
+from getpaid_paynow.simulator.webhooks import trigger_paynow_webhook
+
 from getpaid_simulator.core.storage import SimulatorStorage
-from getpaid_simulator.providers.paynow.webhooks import trigger_paynow_webhook
+from getpaid_simulator.core.webhooks import WebhookTransport
 
 
 @pytest.fixture
@@ -22,11 +24,16 @@ def storage() -> SimulatorStorage:
 
 
 @pytest.fixture
-def config() -> SimulatorConfig:
-    return SimulatorConfig(
-        paynow_signature_key="test-signature-key",
-        paynow_notify_url="http://merchant.local/paynow/callback",
-    )
+def provider_config() -> dict[str, str]:
+    return {
+        "signature_key": "test-signature-key",
+        "notify_url": "http://merchant.local/paynow/callback",
+    }
+
+
+@pytest.fixture
+def webhook_transport() -> WebhookTransport:
+    return WebhookTransport(timeout=5.0, retry_delay=0.0, max_retries=1)
 
 
 @pytest.fixture
@@ -46,7 +53,8 @@ def sample_payment(storage: SimulatorStorage) -> str:
 @pytest.mark.asyncio
 async def test_trigger_paynow_webhook_sends_notification(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_payment: str,
 ):
     """Test trigger_paynow_webhook sends POST to config.paynow_notify_url."""
@@ -55,7 +63,12 @@ async def test_trigger_paynow_webhook_sends_notification(
             return_value=httpx.Response(200)
         )
 
-        await trigger_paynow_webhook(sample_payment, storage, config)
+        await trigger_paynow_webhook(
+            sample_payment,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         assert route.called
         assert route.call_count == 1
@@ -64,7 +77,8 @@ async def test_trigger_paynow_webhook_sends_notification(
 @pytest.mark.asyncio
 async def test_paynow_webhook_body_structure(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_payment: str,
 ):
     """Test webhook body matches PayNow NotificationPayload format."""
@@ -73,7 +87,12 @@ async def test_paynow_webhook_body_structure(
             return_value=httpx.Response(200)
         )
 
-        await trigger_paynow_webhook(sample_payment, storage, config)
+        await trigger_paynow_webhook(
+            sample_payment,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         request = route.calls.last.request
         body = json.loads(request.content)
@@ -97,7 +116,8 @@ async def test_paynow_webhook_body_structure(
 @pytest.mark.asyncio
 async def test_paynow_webhook_signature_verifiable(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_payment: str,
 ):
     """Test webhook signature passes PayNowClient._calculate_notification_signature() verification."""
@@ -106,7 +126,12 @@ async def test_paynow_webhook_signature_verifiable(
             return_value=httpx.Response(200)
         )
 
-        await trigger_paynow_webhook(sample_payment, storage, config)
+        await trigger_paynow_webhook(
+            sample_payment,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         request = route.calls.last.request
         body_bytes = request.content
@@ -131,7 +156,8 @@ async def test_paynow_webhook_signature_verifiable(
 @pytest.mark.asyncio
 async def test_paynow_webhook_on_approval(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
 ):
     """Test that approving via UI triggers webhook with CONFIRMED status."""
     # This test will be implemented when we wire the webhook into routes
@@ -151,7 +177,12 @@ async def test_paynow_webhook_on_approval(
             return_value=httpx.Response(200)
         )
 
-        await trigger_paynow_webhook(payment_id, storage, config)
+        await trigger_paynow_webhook(
+            payment_id,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         request = route.calls.last.request
         body = json.loads(request.content)
@@ -175,9 +206,17 @@ async def test_trigger_paynow_webhook_returns_none_if_no_notify_url(
     }
     payment_id = storage.create_order(payment_data, provider="paynow")
 
-    config_no_url = SimulatorConfig(paynow_notify_url="")
+    provider_config_no_url = {
+        "signature_key": "test-signature-key",
+        "notify_url": "",
+    }
 
-    result = await trigger_paynow_webhook(payment_id, storage, config_no_url)
+    result = await trigger_paynow_webhook(
+        payment_id,
+        storage,
+        provider_config_no_url,
+        webhook_transport,
+    )
 
     assert result is None
 
@@ -185,10 +224,16 @@ async def test_trigger_paynow_webhook_returns_none_if_no_notify_url(
 @pytest.mark.asyncio
 async def test_trigger_paynow_webhook_returns_none_if_payment_not_found(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
 ):
     """Test webhook trigger returns None for nonexistent payment."""
-    result = await trigger_paynow_webhook("missing-payment-id", storage, config)
+    result = await trigger_paynow_webhook(
+        "missing-payment-id",
+        storage,
+        provider_config,
+        webhook_transport,
+    )
 
     assert result is None
 
@@ -196,7 +241,8 @@ async def test_trigger_paynow_webhook_returns_none_if_payment_not_found(
 @pytest.mark.asyncio
 async def test_trigger_paynow_webhook_retries_on_5xx(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_payment: str,
 ):
     """Test webhook retries on 5xx server errors."""
@@ -208,7 +254,12 @@ async def test_trigger_paynow_webhook_retries_on_5xx(
             ]
         )
 
-        await trigger_paynow_webhook(sample_payment, storage, config)
+        await trigger_paynow_webhook(
+            sample_payment,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         assert route.call_count == 2
 
@@ -216,7 +267,8 @@ async def test_trigger_paynow_webhook_retries_on_5xx(
 @pytest.mark.asyncio
 async def test_trigger_paynow_webhook_no_retry_on_4xx(
     storage: SimulatorStorage,
-    config: SimulatorConfig,
+    provider_config: dict[str, str],
+    webhook_transport: WebhookTransport,
     sample_payment: str,
 ):
     """Test webhook does not retry on 4xx client errors."""
@@ -225,6 +277,11 @@ async def test_trigger_paynow_webhook_no_retry_on_4xx(
             return_value=httpx.Response(400, text="Bad Request")
         )
 
-        await trigger_paynow_webhook(sample_payment, storage, config)
+        await trigger_paynow_webhook(
+            sample_payment,
+            storage,
+            provider_config,
+            webhook_transport,
+        )
 
         assert route.call_count == 1
