@@ -73,5 +73,5 @@ virtualenv
 # Sublime text (editor)
 *.sublime-project
 *.sublime-workspace
-
-/.smithers
+.sisyphus
+uv.lock
