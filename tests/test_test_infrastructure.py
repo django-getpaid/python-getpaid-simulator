@@ -52,6 +52,26 @@ def test_makefile_exposes_unit_integration_and_e2e_targets() -> None:
     assert "docker compose -f compose.test.yml run --rm tests" in content
 
 
+def test_dockerfile_specific_ignore_files_keep_only_required_repos() -> None:
+    for file_name in (
+        "Dockerfile.dockerignore",
+        "Dockerfile.test.dockerignore",
+    ):
+        content = (REPO_ROOT / file_name).read_text()
+
+        assert "**" in content
+        assert "!getpaid-core/" in content
+        assert "!getpaid-core/**" in content
+        assert "!getpaid-payu/" in content
+        assert "!getpaid-payu/**" in content
+        assert "!getpaid-paynow/" in content
+        assert "!getpaid-paynow/**" in content
+        assert "!getpaid-simulator/" in content
+        assert "!getpaid-simulator/**" in content
+        assert "**/.git" in content
+        assert "**/.venv" in content
+
+
 def test_chromium_launch_uses_playwright_bundle_by_default(
     monkeypatch,
 ) -> None:
