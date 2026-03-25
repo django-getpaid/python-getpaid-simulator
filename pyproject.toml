@@ -36,12 +36,13 @@ dev = [
     'litestar[testing]',
     'respx>=0.21.0',
     "playwright>=1.40.0",
-    'python-getpaid-payu>=3.0.0a3',
-    'python-getpaid-paynow>=3.0.0a3',
+    'python-getpaid-core>=3.0.0a4',
+    'python-getpaid-payu>=3.0.0a4',
+    'python-getpaid-paynow>=3.0.0a4',
 ]
 e2e = [
     {include-group = "dev"},
-    'python-getpaid-core>=3.0.0a3',
+    'python-getpaid-core>=3.0.0a4',
     'python-getpaid-payu',
     'python-getpaid-paynow',
 ]
