@@ -41,6 +41,32 @@ async def test_payu_authorize_get(test_client, simulator_storage):
 
 
 @pytest.mark.asyncio
+async def test_payu_authorize_get_uses_provider_amount_minor_unit_places(
+    test_client,
+    simulator_storage,
+):
+    test_client.app.state.provider_configs["payu"][
+        "amount_minor_unit_places"
+    ] = 0
+    order_id = simulator_storage.create_order(
+        {
+            "provider": "payu",
+            "totalAmount": "1000",
+            "currencyCode": "PLN",
+            "description": "Test order",
+            "continueUrl": "https://example.com/continue",
+            "notifyUrl": "https://example.com/notify",
+        }
+    )
+
+    response = await test_client.get(f"/sim/payu/authorize/{order_id}")
+
+    assert response.status_code == 200
+    assert "1000.00 PLN" in response.text
+    assert "10.00 PLN" not in response.text
+
+
+@pytest.mark.asyncio
 async def test_payu_authorize_get_404(test_client):
     response = await test_client.get("/sim/payu/authorize/non-existent-order")
     assert response.status_code == 404
@@ -114,6 +140,31 @@ async def test_paynow_authorize_get(test_client, simulator_storage):
     assert response.status_code == 200
     assert "SIMULATOR" in response.text
     assert "PayNow" in response.text
+
+
+@pytest.mark.asyncio
+async def test_paynow_authorize_get_uses_provider_amount_minor_unit_places(
+    test_client,
+    simulator_storage,
+):
+    test_client.app.state.provider_configs["paynow"][
+        "amount_minor_unit_places"
+    ] = 0
+    payment_id = simulator_storage.create_order(
+        {
+            "provider": "paynow",
+            "amount": 1000,
+            "currency": "PLN",
+            "description": "Test PayNow",
+            "continueUrl": "https://example.com/paynow-continue",
+        }
+    )
+
+    response = await test_client.get(f"/sim/paynow/authorize/{payment_id}")
+
+    assert response.status_code == 200
+    assert "1000.00 PLN" in response.text
+    assert "10.00 PLN" not in response.text
 
 
 @pytest.mark.asyncio

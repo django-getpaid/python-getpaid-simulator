@@ -69,6 +69,45 @@ async def test_dashboard_filter_by_provider(test_client, simulator_storage):
 
 
 @pytest.mark.asyncio
+async def test_dashboard_uses_provider_amount_minor_unit_places(
+    test_client,
+    simulator_storage,
+):
+    test_client.app.state.provider_configs["payu"][
+        "amount_minor_unit_places"
+    ] = 0
+    simulator_storage.create_order(
+        {"totalAmount": "1500", "currencyCode": "PLN", "description": "test"},
+        provider="payu",
+    )
+
+    response = await test_client.get("/sim/dashboard?provider=payu")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "1500.00 PLN" in html
+    assert "15.00 PLN" not in html
+
+
+@pytest.mark.asyncio
+async def test_dashboard_falls_back_to_raw_units_for_unknown_provider(
+    test_client,
+    simulator_storage,
+):
+    simulator_storage.create_order(
+        {"amount": "12.50", "currency": "PLN", "description": "custom"},
+        provider="custompay",
+    )
+
+    response = await test_client.get("/sim/dashboard?provider=custompay")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "12.50 PLN" in html
+    assert "0.12 PLN" not in html
+
+
+@pytest.mark.asyncio
 async def test_dashboard_redirects_from_root(test_client, simulator_storage):
     response = await test_client.get("/sim/")
     assert response.status_code in (200, 307)
