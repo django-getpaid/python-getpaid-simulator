@@ -9,6 +9,7 @@ from litestar import Litestar
 from litestar import get
 from litestar.contrib.jinja import JinjaTemplateEngine
 from litestar.datastructures import State
+from litestar.static_files import create_static_files_router
 from litestar.template.config import TemplateConfig
 
 from getpaid_simulator.core.config import SimulatorConfig
@@ -115,9 +116,13 @@ def create_app(
             "invalid_transition_error": InvalidTransitionError,
         }
     )
+    static_files_router = create_static_files_router(
+        path="/static",
+        directories=[Path(__file__).parent / "ui" / "static"],
+    )
 
     return Litestar(
-        route_handlers=route_handlers,
+        route_handlers=[*route_handlers, static_files_router],
         state=state,
         template_config=TemplateConfig(
             engine=JinjaTemplateEngine(
@@ -125,6 +130,3 @@ def create_app(
             )
         ),
     )
-
-
-app = create_app()

@@ -158,3 +158,61 @@ async def test_dashboard_renders_dynamic_filters_and_plugin_warning(
     body = response.text
     assert "FakePay" in body
     assert "brokenpay" in body
+
+
+@pytest.mark.asyncio
+async def test_create_app_serves_static_stylesheet(monkeypatch):
+    monkeypatch.setattr(
+        app_module,
+        "load_provider_plugins",
+        lambda config: PluginLoadResult(
+            loaded_plugins=(),
+            failed_plugins=(),
+            provider_configs={},
+        ),
+    )
+    app = app_module.create_app()
+
+    async with AsyncTestClient(app=app) as test_client:
+        response = await test_client.get("/static/style.css")
+
+    assert response.status_code == 200
+    assert "text/css" in response.headers["content-type"]
+
+
+def test_importing_app_module_does_not_load_plugins(monkeypatch):
+    import importlib
+    import sys
+
+    sys.modules.pop("getpaid_simulator.app", None)
+    load_calls: list[object] = []
+
+    def fake_load_provider_plugins(config):
+        load_calls.append(config)
+        return PluginLoadResult(
+            loaded_plugins=(),
+            failed_plugins=(),
+            provider_configs={},
+        )
+
+    monkeypatch.setattr(
+        "getpaid_simulator.plugins.load_provider_plugins",
+        fake_load_provider_plugins,
+    )
+
+    app_module_reimported = importlib.import_module("getpaid_simulator.app")
+
+    assert load_calls == []
+    app_module_reimported.create_app()
+    assert len(load_calls) == 1
+
+
+def test_docker_compose_healthcheck_uses_health_endpoint():
+    from pathlib import Path
+
+    compose_file = Path(__file__).resolve().parents[1] / "docker-compose.yml"
+    content = compose_file.read_text()
+
+    assert 'http://localhost:9000/"' not in content
+    assert "http://localhost:9000/sim/dashboard" not in content
+    assert "http://localhost:9000/sim/status" in content

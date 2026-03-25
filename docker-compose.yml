@@ -12,7 +12,7 @@ services:
       - SIMULATOR_PORT=9000
       - SIMULATOR_LOG_LEVEL=info
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/sim/dashboard"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/sim/status"]
       interval: 10s
       timeout: 5s
       retries: 3
