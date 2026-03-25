@@ -7,7 +7,7 @@ import getpaid_simulator
 
 def test_version():
     """Test that version is accessible."""
-    assert getpaid_simulator.__version__ == "3.0.0a3"
+    assert getpaid_simulator.__version__ == "3.0.0a4"
 
 
 @pytest.mark.asyncio

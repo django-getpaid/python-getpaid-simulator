@@ -73,7 +73,7 @@ Example:
 ```toml
 [project.optional-dependencies]
 simulator = [
-    "python-getpaid-simulator>=3.0.0a3",
+    "python-getpaid-simulator>=3.0.0a4",
     "litestar>=2.0",
 ]
 ```
