@@ -1,9 +1,12 @@
 """E2E test configuration with Playwright and live server."""
 
 import asyncio
+import os
 import socket
 from collections.abc import AsyncGenerator
 from typing import Any
+from typing import NotRequired
+from typing import TypedDict
 from urllib.parse import urlsplit
 
 import httpx
@@ -14,6 +17,27 @@ from playwright.async_api import Page
 from playwright.async_api import async_playwright
 
 from getpaid_simulator.app import create_app
+
+
+class ChromiumLaunchKwargs(TypedDict):
+    headless: bool
+    args: list[str]
+    executable_path: NotRequired[str]
+
+
+def get_chromium_launch_kwargs() -> ChromiumLaunchKwargs:
+    kwargs: ChromiumLaunchKwargs = {
+        "headless": True,
+        "args": [
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+        ],
+    }
+    executable_path = os.getenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE")
+    if executable_path:
+        kwargs["executable_path"] = executable_path
+    return kwargs
 
 
 def _find_free_port() -> int:
@@ -66,17 +90,9 @@ async def live_server() -> AsyncGenerator[str, None]:
 
 @pytest.fixture
 async def browser() -> AsyncGenerator[Browser, None]:
-    """Playwright browser instance with system Chromium."""
+    """Playwright browser instance for E2E tests."""
     async with async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            executable_path="/usr/bin/chromium",
-            args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-            ],
-        )
+        browser = await p.chromium.launch(**get_chromium_launch_kwargs())
         yield browser
         await browser.close()
 
