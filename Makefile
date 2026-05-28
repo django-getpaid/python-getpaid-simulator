@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration test-e2e test-build test-down
+.PHONY: test test-unit test-integration test-e2e test-build test-down pip-audit
 
 UNIT_TESTS = \
 	tests/test_cli.py \
@@ -48,3 +48,6 @@ test-build:
 
 test-down:
 	docker compose -f compose.test.yml down -v
+
+pip-audit:
+	uv run pip-audit --strict

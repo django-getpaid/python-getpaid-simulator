@@ -39,6 +39,7 @@ dev = [
     'python-getpaid-core>=3.0.0a4',
     'python-getpaid-payu>=3.0.0a4',
     'python-getpaid-paynow>=3.0.0a4',
+    'pip-audit>=2.7.0',
 ]
 e2e = [
     {include-group = "dev"},

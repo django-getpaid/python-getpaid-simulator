@@ -29,6 +29,9 @@ jobs:
       - name: Lint with ruff
         run: uv run ruff check .
 
+      - name: Audit dependencies
+        run: uv run pip-audit --strict
+
       - name: Run unit tests
         run: make test-unit
 
