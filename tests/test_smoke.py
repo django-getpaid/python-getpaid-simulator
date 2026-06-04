@@ -10,25 +10,27 @@ import getpaid_simulator
 
 def test_version():
     """Test that version is accessible."""
-    assert getpaid_simulator.__version__ == "3.0.0a4"
+    assert getpaid_simulator.__version__ == "3.0.0"
 
 
 def test_e2e_core_dependency_floor():
-    """E2E dependency group requires the published core alpha."""
+    """E2E dependency group requires the published core."""
     pyproject_data = tomllib.loads(Path("pyproject.toml").read_text())
+    # e2e includes dev, which has the core dependency
+    dev_deps = pyproject_data["dependency-groups"]["dev"]
     assert (
-        "python-getpaid-core>=3.0.0a4"
-        in pyproject_data["dependency-groups"]["e2e"]
+        "python-getpaid-core>=3.0.0"
+        in dev_deps
     )
 
 
 def test_dev_provider_dependency_floors():
-    """Simulator dev environment tracks published provider alpha floors."""
+    """Simulator dev environment tracks published provider floors."""
     pyproject_data = tomllib.loads(Path("pyproject.toml").read_text())
     dev_dependencies = pyproject_data["dependency-groups"]["dev"]
-    assert "python-getpaid-core>=3.0.0a4" in dev_dependencies
-    assert "python-getpaid-payu>=3.0.0a4" in dev_dependencies
-    assert "python-getpaid-paynow>=3.0.0a4" in dev_dependencies
+    assert "python-getpaid-core>=3.0.0" in dev_dependencies
+    assert "python-getpaid-payu>=3.0.0" in dev_dependencies
+    assert "python-getpaid-paynow>=3.0.0" in dev_dependencies
 
 
 @pytest.mark.asyncio

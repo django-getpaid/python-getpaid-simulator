@@ -15,8 +15,8 @@ services:
 
   tests:
     build:
-      context: ..
-      dockerfile: getpaid-simulator/Dockerfile.test
+      context: .
+      dockerfile: Dockerfile.test
     depends_on:
       testdb:
         condition: service_healthy

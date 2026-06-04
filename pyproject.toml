@@ -9,7 +9,7 @@ authors = [
 ]
 requires-python = '>=3.12'
 classifiers = [
-    'Development Status :: 3 - Alpha',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: MIT License',
     'Programming Language :: Python :: 3.12',
@@ -36,16 +36,13 @@ dev = [
     'litestar[testing]',
     'respx>=0.21.0',
     "playwright>=1.40.0",
-    'python-getpaid-core>=3.0.0a4',
-    'python-getpaid-payu>=3.0.0a4',
-    'python-getpaid-paynow>=3.0.0a4',
+    'python-getpaid-core>=3.0.0',
+    'python-getpaid-payu>=3.0.0',
+    'python-getpaid-paynow>=3.0.0',
     'pip-audit>=2.7.0',
 ]
 e2e = [
     {include-group = "dev"},
-    'python-getpaid-core>=3.0.0a4',
-    'python-getpaid-payu',
-    'python-getpaid-paynow',
 ]
 
 [project.scripts]
@@ -54,6 +51,8 @@ getpaid-simulator = "getpaid_simulator.__main__:main"
 [project.urls]
 Homepage = 'https://github.com/django-getpaid/python-getpaid-simulator'
 Repository = 'https://github.com/django-getpaid/python-getpaid-simulator'
+Documentation = 'https://python-getpaid-simulator.readthedocs.io'
+Changelog = 'https://github.com/django-getpaid/python-getpaid-simulator/releases'
 
 [build-system]
 requires = ['hatchling']

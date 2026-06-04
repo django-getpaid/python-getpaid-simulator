@@ -26,10 +26,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install --no-cache-dir uv
 
-COPY getpaid-core/ /app/getpaid-core/
-COPY getpaid-payu/ /app/getpaid-payu/
-COPY getpaid-paynow/ /app/getpaid-paynow/
-COPY getpaid-simulator/ /app/getpaid-simulator/
+# Copy only the simulator repo (CI checks out a single repo, not the workspace)
+COPY . /app/getpaid-simulator
+
+# Strip local editable-source overrides so uv resolves from PyPI in CI.
+# The [tool.uv.sources] section points to sibling repos that don't exist
+# in a standalone checkout.
+RUN sed -i '/^\[tool\.uv\.sources\]/,/^$/d' pyproject.toml
 
 ENV PLAYWRIGHT_BROWSERS_PATH="/app/getpaid-simulator/.cache/ms-playwright"
 
