@@ -17,7 +17,7 @@ def _sample_payment_payload() -> dict[str, object]:
 
 @pytest.mark.asyncio
 async def test_paynow_create_refund(test_client):
-    """Test POST /v3/payments/{payment_id}/refunds creates refund and returns 201."""
+    """POST /v3/payments/{payment_id}/refunds creates a refund (201)."""
     # Create payment first
     create_response = await test_client.post(
         "/paynow/v3/payments",
@@ -126,7 +126,7 @@ async def test_paynow_get_refund_status(test_client):
 
 @pytest.mark.asyncio
 async def test_paynow_get_refund_status_not_found(test_client):
-    """Test GET /v3/refunds/{refund_id}/status returns 404 for nonexistent refund."""
+    """GET /v3/refunds/{refund_id}/status is 404 for unknown refund."""
     status_response = await test_client.get(
         "/paynow/v3/refunds/nonexistent-refund/status",
         headers={"Api-Key": "test-key", "Signature": "abc"},
@@ -159,7 +159,8 @@ async def test_paynow_cancel_refund(test_client):
     )
     refund_id = refund_response.json()["refundId"]
 
-    # Note: In simulator, refunds are immediately SUCCESSFUL, so cancel won't do much
+    # Note: simulator refunds are immediately SUCCESSFUL, so cancel
+    # won't do much,
     # but we need to support the endpoint for API contract completeness
     cancel_response = await test_client.post(
         f"/paynow/v3/refunds/{refund_id}/cancel",
@@ -176,7 +177,7 @@ async def test_paynow_cancel_refund(test_client):
 
 @pytest.mark.asyncio
 async def test_paynow_cancel_refund_not_found(test_client):
-    """Test POST /v3/refunds/{refund_id}/cancel returns 404 for nonexistent refund."""
+    """POST /v3/refunds/{refund_id}/cancel is 404 for unknown refund."""
     cancel_response = await test_client.post(
         "/paynow/v3/refunds/nonexistent-refund/cancel",
         headers={"Api-Key": "test-key", "Signature": "abc"},
@@ -190,7 +191,7 @@ async def test_paynow_cancel_refund_not_found(test_client):
 
 @pytest.mark.asyncio
 async def test_paynow_refund_error_format(test_client):
-    """Test refund errors use PayNow format: {statusCode, errors: [{errorType, message}]}."""
+    """Refund errors use the PayNow error envelope format."""
     # Try to refund nonexistent payment
     refund_response = await test_client.post(
         "/paynow/v3/payments/fake-id/refunds",

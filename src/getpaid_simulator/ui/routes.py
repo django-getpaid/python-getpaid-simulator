@@ -1,15 +1,17 @@
 from decimal import Decimal
 from decimal import InvalidOperation
+from typing import TYPE_CHECKING
 from typing import Any
-from typing import Optional
 
 from litestar import get
 from litestar.datastructures import State
 from litestar.response import Template
 
-from getpaid_simulator.core.storage import SimulatorStorage
-from getpaid_simulator.plugins import ProviderLoadFailure
-from getpaid_simulator.spi import SimulatorProviderPlugin
+
+if TYPE_CHECKING:
+    from getpaid_simulator.core.storage import SimulatorStorage
+    from getpaid_simulator.plugins import ProviderLoadFailure
+    from getpaid_simulator.spi import SimulatorProviderPlugin
 
 
 def _format_amount_for_display(
@@ -50,7 +52,7 @@ def _minor_unit_places(provider_config: dict[str, Any] | None) -> int | None:
 
 
 @get(["/sim/", "/sim/dashboard"])
-async def dashboard(state: State, provider: Optional[str] = None) -> Template:
+async def dashboard(state: State, provider: str | None = None) -> Template:
     """Render payments dashboard."""
     storage: SimulatorStorage = state.storage
     loaded_plugins: dict[str, SimulatorProviderPlugin] = state.loaded_plugins

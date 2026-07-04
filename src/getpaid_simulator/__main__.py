@@ -1,7 +1,6 @@
 """CLI entry point for getpaid-simulator."""
 
 import argparse
-import sys
 
 import uvicorn
 
@@ -9,6 +8,18 @@ from getpaid_simulator import __version__
 from getpaid_simulator.app import create_app
 from getpaid_simulator.core.config import SimulatorConfig
 from getpaid_simulator.plugins import load_provider_plugins
+
+
+def _dashboard_url(config: SimulatorConfig) -> str:
+    """Return a browsable dashboard URL for the startup banner.
+
+    Wildcard bind addresses are not browsable, so they are displayed
+    as ``localhost``.
+    """
+    host = config.host
+    if host in {"0.0.0.0", "::", ""}:
+        host = "localhost"
+    return f"http://{host}:{config.port}/sim/"
 
 
 def _print_startup_banner(
@@ -26,7 +37,7 @@ def _print_startup_banner(
     providers_str = ", ".join(loaded_providers) if loaded_providers else "none"
     failed_str = ", ".join(failed_providers) if failed_providers else "none"
 
-    dashboard_url = f"http://{config.host}:{config.port}/sim/"
+    dashboard_url = _dashboard_url(config)
     status_label = "DEGRADED" if failed_providers else "READY"
 
     banner = f"""

@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
-from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 import respx
-
 from getpaid_payu.simulator.webhooks import trigger_payu_webhook
 
 from getpaid_simulator.core.storage import SimulatorStorage

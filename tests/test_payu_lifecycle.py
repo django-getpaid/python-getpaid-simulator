@@ -1,5 +1,4 @@
 import pytest
-
 from getpaid_payu.simulator.transitions import PAYU_TRANSITIONS
 
 
@@ -27,6 +26,7 @@ async def test_order_info_and_cancel(
 ):
     order_id = simulator_storage.create_order(
         {
+            "provider": "payu",
             "extOrderId": "ext-1",
             "status": "PENDING",
             "totalAmount": "10000",
@@ -72,6 +72,7 @@ async def test_cancel_completed_order_returns_error_value_invalid(
 ):
     order_id = simulator_storage.create_order(
         {
+            "provider": "payu",
             "extOrderId": "ext-completed",
             "status": "COMPLETED",
             "totalAmount": "5000",
@@ -98,6 +99,7 @@ async def test_capture_waiting_for_confirmation_order(
 ):
     order_id = simulator_storage.create_order(
         {
+            "provider": "payu",
             "extOrderId": "ext-capture",
             "status": "WAITING_FOR_CONFIRMATION",
             "totalAmount": "7000",
@@ -130,6 +132,7 @@ async def test_capture_pending_order_returns_error_value_invalid(
 ):
     order_id = simulator_storage.create_order(
         {
+            "provider": "payu",
             "extOrderId": "ext-pending",
             "status": "PENDING",
             "totalAmount": "6000",

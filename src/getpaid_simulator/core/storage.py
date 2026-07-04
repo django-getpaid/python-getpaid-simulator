@@ -5,18 +5,27 @@ from copy import deepcopy
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
+from decimal import ROUND_HALF_UP
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
 
 def _centify(value: Any) -> Any:
+    """Normalize numeric amounts to strings of integer minor units.
+
+    Convention: callers pass amounts already expressed in the
+    provider's minor unit (e.g. grosze for PLN), and stored payloads
+    keep them as decimal strings — mirroring how PayU/PayNow put
+    amounts on the wire. Decimals are rounded half-up to the nearest
+    integer, never truncated.
+    """
     if isinstance(value, bool):
         return value
     if isinstance(value, int):
         return str(value)
     if isinstance(value, Decimal):
-        return str(int(value))
+        return str(value.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
     if isinstance(value, list):
         return [_centify(item) for item in value]
     if isinstance(value, dict):
@@ -82,9 +91,13 @@ class SimulatorStorage:
                 order_payload["buyer"] = {"email": buyer_email}
         else:
             order_payload = deepcopy(data)
-            order_payload["provider"] = provider or str(
-                order_payload.get("provider", "payu")
-            )
+            data_provider = provider or order_payload.get("provider")
+            if data_provider is None:
+                raise TypeError(
+                    "provider is required: pass provider= or include a "
+                    "'provider' key in data"
+                )
+            order_payload["provider"] = str(data_provider)
 
         order_data = _centify_dict(order_payload)
         order_data["id"] = order_id
@@ -112,9 +125,20 @@ class SimulatorStorage:
             if order.get("provider") == provider
         ]
 
+    def _purge_expired_tokens(self) -> None:
+        now = datetime.now(UTC)
+        expired = [
+            token
+            for token, token_data in self._tokens.items()
+            if now >= token_data["expires_at"]
+        ]
+        for token in expired:
+            del self._tokens[token]
+
     def create_token(
         self, pos_id: str, expires_in: int = 3600
     ) -> dict[str, Any]:
+        self._purge_expired_tokens()
         access_token = uuid4().hex
         self._tokens[access_token] = {
             "pos_id": pos_id,
@@ -123,10 +147,8 @@ class SimulatorStorage:
         return {"access_token": access_token, "expires_in": expires_in}
 
     def validate_token(self, token: str) -> bool:
-        token_data = self._tokens.get(token)
-        if token_data is None:
-            return False
-        return datetime.now(UTC) < token_data["expires_at"]
+        self._purge_expired_tokens()
+        return token in self._tokens
 
     def create_refund(self, order_id: str, data: dict[str, Any]) -> str:
         refund_id = uuid4().hex

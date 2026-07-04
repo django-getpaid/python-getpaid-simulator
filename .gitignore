@@ -16,5 +16,5 @@ htmlcov/
 # Sphinx build output
 docs/_build/
 
-# uv lock file
-uv.lock
+# Task runner artifacts
+.sisyphus/

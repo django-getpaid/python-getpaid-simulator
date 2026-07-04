@@ -11,7 +11,6 @@ import httpx
 import pytest
 import respx
 from getpaid_paynow.client import PaynowClient
-
 from getpaid_paynow.simulator.webhooks import trigger_paynow_webhook
 
 from getpaid_simulator.core.storage import SimulatorStorage
@@ -120,7 +119,7 @@ async def test_paynow_webhook_signature_verifiable(
     webhook_transport: WebhookTransport,
     sample_payment: str,
 ):
-    """Test webhook signature passes PayNowClient._calculate_notification_signature() verification."""
+    """Webhook signature passes PayNowClient notification verification."""
     async with respx.mock:
         route = respx.post("http://merchant.local/paynow/callback").mock(
             return_value=httpx.Response(200)

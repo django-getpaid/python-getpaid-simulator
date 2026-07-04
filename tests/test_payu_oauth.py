@@ -1,16 +1,12 @@
 """Tests for PayU OAuth2 endpoint and signature signing."""
 
-import time
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
 
-import pytest
-from litestar.testing import AsyncTestClient
-
-from getpaid_simulator.core.storage import SimulatorStorage
 from getpaid_payu.simulator.signing import compute_signature
 from getpaid_payu.simulator.signing import sign_payload
+from litestar.testing import AsyncTestClient
 
 
 class TestOAuthEndpoint:
@@ -286,10 +282,9 @@ class TestSignatureModule:
             if "=" in item
         )
         signature = parsed.get("signature", "")
-        algo_name = parsed.get("algorithm", "SHA-256").upper()
 
-        from hashlib import sha256
         import hmac
+        from hashlib import sha256
 
         algorithm = sha256
         expected = algorithm(body + second_key.encode()).hexdigest()

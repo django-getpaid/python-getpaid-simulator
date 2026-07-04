@@ -9,8 +9,6 @@ import hashlib
 import hmac
 import json
 
-import pytest
-
 
 def test_calculate_notification_signature():
     """Test notification signature calculation matches PayNow algorithm.
@@ -46,13 +44,14 @@ def test_calculate_notification_signature_matches_real_client():
 
     CRITICAL: This test verifies byte-identical output for identical inputs.
     """
-    from getpaid_paynow.simulator.signing import (
-        calculate_notification_signature,
-    )
+    import pathlib
 
     # Import real client implementation for cross-verification
     import sys
-    import pathlib
+
+    from getpaid_paynow.simulator.signing import (
+        calculate_notification_signature,
+    )
 
     client_path = (
         pathlib.Path(__file__).parent.parent.parent / "getpaid-paynow" / "src"
@@ -92,9 +91,7 @@ def test_calculate_request_signature():
     - HMAC-SHA256(payload_json.encode(), signature_key.encode())
     - base64 encode result
     """
-    from getpaid_paynow.simulator.signing import (
-        calculate_request_signature,
-    )
+    from getpaid_paynow.simulator.signing import calculate_request_signature
 
     api_key = "api-key-abc"
     idempotency_key = "idempotency-xyz"
@@ -136,9 +133,7 @@ def test_calculate_request_signature_with_parameters():
 
     Parameters must be sorted alphabetically by key.
     """
-    from getpaid_paynow.simulator.signing import (
-        calculate_request_signature,
-    )
+    from getpaid_paynow.simulator.signing import calculate_request_signature
 
     api_key = "api-key-abc"
     idempotency_key = "idempotency-xyz"
@@ -211,7 +206,7 @@ def test_paynow_sign_webhook_returns_correct_header():
 
 
 def test_paynow_sign_webhook_accepts_bytes():
-    """Test paynow_sign_webhook accepts bytes body (WebhookDelivery contract)."""
+    """paynow_sign_webhook accepts a bytes body (delivery contract)."""
     from getpaid_paynow.simulator.signing import sign_webhook
 
     body = b'{"test":"data"}'

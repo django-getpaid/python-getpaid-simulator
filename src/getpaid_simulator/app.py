@@ -7,8 +7,8 @@ from pathlib import Path
 
 from litestar import Litestar
 from litestar import get
-from litestar.contrib.jinja import JinjaTemplateEngine
 from litestar.datastructures import State
+from litestar.plugins.jinja import JinjaTemplateEngine
 from litestar.static_files import create_static_files_router
 from litestar.template.config import TemplateConfig
 

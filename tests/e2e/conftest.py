@@ -1,6 +1,7 @@
 """E2E test configuration with Playwright and live server."""
 
 import asyncio
+import contextlib
 import os
 import socket
 from collections.abc import AsyncGenerator
@@ -82,10 +83,8 @@ async def live_server() -> AsyncGenerator[str, None]:
 
     server.should_exit = True
     task.cancel()
-    try:
+    with contextlib.suppress(asyncio.CancelledError):
         await task
-    except asyncio.CancelledError:
-        pass
 
 
 @pytest.fixture

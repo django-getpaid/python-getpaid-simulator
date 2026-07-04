@@ -1,3 +1,3 @@
 """Payment gateway simulator for testing the python-getpaid ecosystem."""
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"

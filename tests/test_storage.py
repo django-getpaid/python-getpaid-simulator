@@ -1,6 +1,9 @@
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
+from decimal import Decimal
+
+import pytest
 
 from getpaid_simulator.core.storage import SimulatorStorage
 
@@ -10,6 +13,7 @@ def test_order_create_get_update_and_list():
 
     order_id = storage.create_order(
         {
+            "provider": "payu",
             "status": "NEW",
             "totalAmount": 12345,
             "products": [{"name": "Starter", "unitPrice": 999}],
@@ -34,6 +38,44 @@ def test_order_create_get_update_and_list():
     assert orders[0]["id"] == order_id
 
 
+def test_create_order_requires_provider():
+    """Orders must never silently default to a provider."""
+    storage = SimulatorStorage()
+
+    with pytest.raises(TypeError, match="provider"):
+        storage.create_order({"status": "NEW", "totalAmount": "100"})
+
+
+def test_create_order_keeps_provider_from_data():
+    storage = SimulatorStorage()
+
+    order_id = storage.create_order(
+        {"provider": "paynow", "status": "NEW", "totalAmount": "100"}
+    )
+
+    order = storage.get_order(order_id)
+    assert order is not None
+    assert order["provider"] == "paynow"
+
+
+def test_decimal_amounts_round_half_up_instead_of_truncating():
+    storage = SimulatorStorage()
+
+    order_id = storage.create_order(
+        {
+            "provider": "payu",
+            "status": "NEW",
+            "totalAmount": Decimal("1234.5"),
+            "fraction": Decimal("10.4"),
+        }
+    )
+
+    order = storage.get_order(order_id)
+    assert order is not None
+    assert order["totalAmount"] == "1235"
+    assert order["fraction"] == "10"
+
+
 def test_get_order_returns_none_for_missing_order():
     storage = SimulatorStorage()
     assert storage.get_order("missing") is None
@@ -55,9 +97,33 @@ def test_token_lifecycle_valid_and_expired():
     assert storage.validate_token(token) is False
 
 
+def test_expired_tokens_are_purged_on_validate_and_create():
+    storage = SimulatorStorage()
+
+    stale = storage.create_token("145227")["access_token"]
+    storage._tokens[stale]["expires_at"] = datetime.now(UTC) - timedelta(
+        seconds=1
+    )
+
+    # Validation of any token purges expired entries.
+    assert storage.validate_token(stale) is False
+    assert stale not in storage._tokens
+
+    other_stale = storage.create_token("145227")["access_token"]
+    storage._tokens[other_stale]["expires_at"] = datetime.now(UTC) - timedelta(
+        seconds=1
+    )
+
+    # Creating a new token also purges expired entries.
+    storage.create_token("145227")
+    assert other_stale not in storage._tokens
+
+
 def test_refund_create_and_get_refunds_for_order():
     storage = SimulatorStorage()
-    order_id = storage.create_order({"status": "NEW", "totalAmount": "1000"})
+    order_id = storage.create_order(
+        {"provider": "payu", "status": "NEW", "totalAmount": "1000"}
+    )
 
     refund_id = storage.create_refund(
         order_id,

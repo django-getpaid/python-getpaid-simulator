@@ -34,7 +34,7 @@ def _sample_order_payload() -> dict[str, object]:
 
 @pytest.mark.asyncio
 async def test_payu_refund_endpoint_returns_correct_format(test_client):
-    """Test POST /api/v2_1/orders/{order_id}/refunds returns PayU response format."""
+    """POST /orders/{order_id}/refunds returns the PayU format."""
     # Create and authorize order first
     token = test_client.app.state.storage.create_token("145227")["access_token"]
     response = await test_client.post(
@@ -82,7 +82,9 @@ async def test_payu_refund_endpoint_returns_correct_format(test_client):
 
 
 @pytest.mark.asyncio
-async def test_payu_refund_endpoint_uses_extRefundId_if_provided(test_client):
+async def test_payu_refund_endpoint_uses_ext_refund_id_if_provided(
+    test_client,
+):
     """Test refund endpoint preserves extRefundId from request."""
     token = test_client.app.state.storage.create_token("145227")["access_token"]
     response = await test_client.post(

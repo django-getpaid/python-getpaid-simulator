@@ -1,8 +1,8 @@
 services:
   simulator:
     build:
-      context: ..
-      dockerfile: getpaid-simulator/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "9000:9000"
     environment:
@@ -10,7 +10,12 @@ services:
       - SIMULATOR_PORT=9000
       - SIMULATOR_LOG_LEVEL=info
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/sim/status"]
+      # python:3.12-slim ships no HTTP CLI tools; probe with the stdlib.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:9000/sim/status')"
       interval: 10s
       timeout: 5s
       retries: 3

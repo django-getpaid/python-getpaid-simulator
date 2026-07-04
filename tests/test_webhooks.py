@@ -92,7 +92,7 @@ class TestWebhookSignature:
         assert all(c in "0123456789abcdef" for c in signature_value)
 
     def test_signature_round_trip_verification(self):
-        """Test that simulator signatures can be verified by PayU's algorithm."""
+        """Simulator signatures verify with PayU's own algorithm."""
         body = b'{"order":{"status":"COMPLETED"}}'
         second_key = "b6ca15b0d1020e8094d9b5f8d163db54"
 

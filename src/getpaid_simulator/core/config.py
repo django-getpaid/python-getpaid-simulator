@@ -26,7 +26,7 @@ class SimulatorConfig:
     plugin_failure_mode: PluginFailureMode = "warn"
 
     @classmethod
-    def from_env(cls) -> "SimulatorConfig":
+    def from_env(cls) -> SimulatorConfig:
         """Load configuration from environment variables.
 
         Environment variables use the SIMULATOR_ prefix (e.g.,

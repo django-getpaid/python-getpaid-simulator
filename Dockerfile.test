@@ -29,14 +29,10 @@ RUN pip install --no-cache-dir uv
 # Copy only the simulator repo (CI checks out a single repo, not the workspace)
 COPY . /app/getpaid-simulator
 
-# Strip local editable-source overrides so uv resolves from PyPI in CI.
-# The [tool.uv.sources] section points to sibling repos that don't exist
-# in a standalone checkout.
-RUN sed -i '/^\[tool\.uv\.sources\]/,/^$/d' pyproject.toml
-
 ENV PLAYWRIGHT_BROWSERS_PATH="/app/getpaid-simulator/.cache/ms-playwright"
 
-RUN uv sync --frozen --group e2e
+# Dev group (default) includes the provider plugins and test tooling.
+RUN uv sync --frozen
 RUN uv run playwright install chromium
 
 ENV PATH="/app/getpaid-simulator/.venv/bin:$PATH"

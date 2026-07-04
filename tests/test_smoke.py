@@ -1,7 +1,8 @@
 """Smoke tests for getpaid-simulator."""
 
-from pathlib import Path
 import tomllib
+from importlib.metadata import version
+from pathlib import Path
 
 import pytest
 
@@ -9,28 +10,24 @@ import getpaid_simulator
 
 
 def test_version():
-    """Test that version is accessible."""
-    assert getpaid_simulator.__version__ == "3.0.0"
+    """Source __version__ matches the installed package metadata."""
+    assert getpaid_simulator.__version__ == version("python-getpaid-simulator")
 
 
-def test_e2e_core_dependency_floor():
-    """E2E dependency group requires the published core."""
+def test_provider_dependency_floors():
+    """Simulator tracks the published provider dependency floors."""
     pyproject_data = tomllib.loads(Path("pyproject.toml").read_text())
-    # e2e includes dev, which has the core dependency
-    dev_deps = pyproject_data["dependency-groups"]["dev"]
-    assert (
-        "python-getpaid-core>=3.0.0"
-        in dev_deps
-    )
+    provider_deps = pyproject_data["dependency-groups"]["providers"]
+    assert "python-getpaid-core>=3.1.0" in provider_deps
+    assert "python-getpaid-payu>=3.1.0" in provider_deps
+    assert "python-getpaid-paynow>=3.1.0" in provider_deps
 
 
-def test_dev_provider_dependency_floors():
-    """Simulator dev environment tracks published provider floors."""
+def test_dev_group_includes_providers():
+    """Dev environment installs the provider plugins."""
     pyproject_data = tomllib.loads(Path("pyproject.toml").read_text())
     dev_dependencies = pyproject_data["dependency-groups"]["dev"]
-    assert "python-getpaid-core>=3.0.0" in dev_dependencies
-    assert "python-getpaid-payu>=3.0.0" in dev_dependencies
-    assert "python-getpaid-paynow>=3.0.0" in dev_dependencies
+    assert {"include-group": "providers"} in dev_dependencies
 
 
 @pytest.mark.asyncio

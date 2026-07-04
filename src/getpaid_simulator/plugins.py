@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping
 from dataclasses import dataclass
 from dataclasses import field
 from importlib.metadata import entry_points
+from typing import TYPE_CHECKING
 from typing import Any
 
-from getpaid_simulator.core.config import SimulatorConfig
 from getpaid_simulator.spi import SIMULATOR_PLUGIN_API_VERSION
 from getpaid_simulator.spi import SimulatorProviderPlugin
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from getpaid_simulator.core.config import SimulatorConfig
 
 
 ENTRY_POINT_GROUP = "getpaid.simulator.providers"
@@ -156,8 +161,8 @@ def _validate_plugin(
             ),
         )
 
-    plugin_api_version = str(getattr(plugin, "api_version"))
-    plugin_slug = str(getattr(plugin, "slug"))
+    plugin_api_version = str(plugin.api_version)
+    plugin_slug = str(plugin.slug)
     if plugin_api_version != SIMULATOR_PLUGIN_API_VERSION:
         return ProviderLoadFailure(
             slug=plugin_slug,
@@ -185,22 +190,20 @@ def _validate_plugin(
 def _normalize_plugin(plugin: object) -> SimulatorProviderPlugin:
     transitions = {
         str(status): set(next_statuses)
-        for status, next_statuses in dict(
-            getattr(plugin, "transitions")
-        ).items()
+        for status, next_statuses in dict(plugin.transitions).items()
     }
     authorize_path_template = getattr(plugin, "authorize_path_template", None)
     if authorize_path_template is not None:
         authorize_path_template = str(authorize_path_template)
 
     return SimulatorProviderPlugin(
-        api_version=str(getattr(plugin, "api_version")),
-        slug=str(getattr(plugin, "slug")),
-        display_name=str(getattr(plugin, "display_name")),
-        api_handlers=tuple(getattr(plugin, "api_handlers")),
-        ui_handlers=tuple(getattr(plugin, "ui_handlers")),
+        api_version=str(plugin.api_version),
+        slug=str(plugin.slug),
+        display_name=str(plugin.display_name),
+        api_handlers=tuple(plugin.api_handlers),
+        ui_handlers=tuple(plugin.ui_handlers),
         transitions=transitions,
-        load_config=getattr(plugin, "load_config"),
+        load_config=plugin.load_config,
         authorize_path_template=authorize_path_template,
     )
 

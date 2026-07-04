@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from typing import Any
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from collections.abc import Mapping
 
 
 SIMULATOR_PLUGIN_API_VERSION = "1"

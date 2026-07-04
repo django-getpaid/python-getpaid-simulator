@@ -1,5 +1,4 @@
 import pytest
-
 from getpaid_paynow.simulator.transitions import PAYNOW_TRANSITIONS
 from getpaid_payu.simulator.transitions import PAYU_TRANSITIONS
 
